@@ -1,0 +1,435 @@
+# Architecture
+
+## 1. Architecture Goals
+
+Stella Atlas의 아키텍처는 다음 목표를 가집니다.
+
+- 빠른 MVP 개발
+- 실제 운영 가능한 안정성
+- 외부 API 장애 격리
+- 천문 계산 기능의 점진적 확장
+- 테스트 가능한 관측 점수 도메인
+- Codex가 이해하기 쉬운 명확한 구조
+- 불필요한 분산 시스템 회피
+
+---
+
+## 2. Initial Architecture
+
+```text
+┌──────────────────────────────┐
+│          Frontend            │
+│     Next.js / TypeScript     │
+└──────────────┬───────────────┘
+               │ HTTPS
+┌──────────────▼───────────────┐
+│          Backend             │
+│     Spring Boot / Java       │
+│                              │
+│  ┌────────────────────────┐  │
+│  │ Observation Domain     │  │
+│  ├────────────────────────┤  │
+│  │ Weather Integration    │  │
+│  ├────────────────────────┤  │
+│  │ Astronomy Integration  │  │
+│  ├────────────────────────┤  │
+│  │ Location / User / Log  │  │
+│  └────────────────────────┘  │
+└───────┬───────────────┬──────┘
+        │               │
+┌───────▼──────┐  ┌─────▼───────────────┐
+│ PostgreSQL   │  │ External Providers  │
+└──────────────┘  └─────────────────────┘
+```
+
+---
+
+## 3. Why Spring Boot
+
+Spring Boot를 메인 백엔드로 선택하는 이유:
+
+- 프로젝트 개발자의 기존 경험 활용
+- 명확한 계층 및 도메인 구조
+- 외부 API 통합
+- 검증, 보안, 데이터베이스, 테스트 생태계
+- 장기 운영과 기능 확장
+- Java 기반 정적 타입 안정성
+
+천문 계산이 복잡해진다고 해서 전체 백엔드를 Python으로 교체하지 않습니다.
+
+---
+
+## 4. Optional Python Service
+
+다음 조건이 실제로 발생할 때만 Python 서비스를 고려합니다.
+
+- Astropy 의존성이 핵심 기능이 됨
+- 천체 좌표 변환이 Java 구현보다 현저히 복잡함
+- 대규모 천문 카탈로그 처리
+- 이미지 분석 또는 머신러닝
+- 독립적인 계산 확장이 필요함
+
+도입 전 ADR을 작성해야 합니다.
+
+```text
+Spring Boot
+    │
+    └── FastAPI Astronomy Engine
+            ├── Astropy
+            └── Astroquery
+```
+
+---
+
+## 5. Backend Modules
+
+### observation
+
+관측 조건을 종합하고 결과를 생성합니다.
+
+주요 책임:
+
+- 관측 점수 계산
+- 등급 계산
+- 최적 시간 선택
+- 결과 이유 생성
+- 날씨와 천문 데이터 조합
+
+### weather
+
+날씨 공급자와 통신합니다.
+
+주요 책임:
+
+- 시간대별 날씨 조회
+- 외부 DTO 변환
+- 공급자 오류 처리
+- 캐시 전략
+- 내부 WeatherCondition 생성
+
+### astronomy
+
+천문 정보를 제공합니다.
+
+주요 책임:
+
+- 일몰
+- 박명
+- 월출과 월몰
+- 달의 위상
+- 달 밝기
+- 향후 천체 위치
+
+### location
+
+사용자 입력 위치를 처리합니다.
+
+주요 책임:
+
+- 위도 및 경도 검증
+- 지역명 검색
+- 타임존 해석
+- 저장된 관측 장소
+
+### user
+
+사용자 및 인증을 담당합니다.
+
+MVP 초기에는 비로그인 조회를 우선합니다.
+
+### record
+
+관측 기록을 저장합니다.
+
+MVP 1차 범위에는 포함하지 않을 수 있습니다.
+
+---
+
+## 6. Recommended Internal Structure
+
+```text
+observation/
+├── api/
+│   ├── ObservationController
+│   ├── ObservationRequest
+│   └── ObservationResponse
+├── application/
+│   ├── GetObservationForecastUseCase
+│   └── ObservationFacade
+├── domain/
+│   ├── ObservationScore
+│   ├── ObservationGrade
+│   ├── ObservationReason
+│   ├── ObservationScorePolicy
+│   └── BestObservationWindowSelector
+└── infrastructure/
+    └── persistence/
+```
+
+각 기능 패키지 안에서 필요한 계층만 만듭니다.
+
+불필요한 빈 디렉터리나 인터페이스를 미리 생성하지 않습니다.
+
+---
+
+## 7. Domain Model Draft
+
+### Coordinate
+
+```text
+latitude
+longitude
+```
+
+규칙:
+
+- latitude: -90 ~ 90
+- longitude: -180 ~ 180
+
+### ObservationRequest
+
+```text
+coordinate
+localDate
+timezone
+```
+
+### WeatherCondition
+
+```text
+observedAt
+temperature
+cloudCover
+precipitationProbability
+humidity
+visibility
+windSpeed
+```
+
+### AstronomyCondition
+
+```text
+sunset
+civilTwilightEnd
+nauticalTwilightEnd
+astronomicalTwilightEnd
+moonrise
+moonset
+moonIllumination
+```
+
+### ObservationEvaluation
+
+```text
+score
+grade
+reasons
+recommended
+```
+
+---
+
+## 8. Data Flow
+
+```text
+1. Client sends coordinate and date
+2. Backend validates input
+3. Location module resolves timezone
+4. Weather module fetches hourly forecast
+5. Astronomy module calculates or fetches astronomy data
+6. Observation module aligns data by local time
+7. Score policy evaluates each time slot
+8. Best window selector chooses recommendation
+9. API maps domain result to response DTO
+```
+
+---
+
+## 9. Time and Timezone Policy
+
+천체관측 서비스에서 시간은 핵심 도메인입니다.
+
+### Rules
+
+- API 입력 날짜는 조회 위치의 로컬 날짜로 해석
+- 외부 API 시간은 원본 타임존을 확인
+- 내부 저장이 필요한 절대 시각은 `Instant`
+- 사용자 표현은 `ZonedDateTime`
+- 서버 OS 기본 타임존 사용 금지
+- UTC와 로컬 시각 변환 테스트 필수
+- 자정을 넘는 관측 시간 구간 지원
+
+---
+
+## 10. External API Integration
+
+각 공급자는 Adapter로 격리합니다.
+
+```text
+WeatherProvider
+  └── OpenMeteoWeatherAdapter
+
+AstronomyProvider
+  └── AstronomyApiAdapter
+```
+
+내부 애플리케이션은 특정 공급자의 DTO를 알지 못해야 합니다.
+
+### Required Protections
+
+- 연결 타임아웃
+- 응답 타임아웃
+- 오류 매핑
+- 데이터 누락 처리
+- 제한적인 재시도
+- 모니터링
+- 캐싱
+
+---
+
+## 11. Caching Strategy
+
+날씨와 천문 데이터는 동일 좌표와 시간 범위에서 반복 조회될 가능성이 높습니다.
+
+초기에는 Caffeine 같은 인메모리 캐시를 고려합니다.
+
+### Example Cache Key
+
+```text
+provider + rounded-coordinate + date + timezone
+```
+
+### Coordinate Rounding
+
+정밀도와 캐시 효율 사이의 균형이 필요합니다.
+
+임의로 결정하지 않고 ADR로 기록합니다.
+
+Redis는 다중 인스턴스 운영 또는 공유 캐시 필요성이 확인된 후 도입합니다.
+
+---
+
+## 12. Database Design Principles
+
+초기 데이터 후보:
+
+- user
+- saved_location
+- observation_record
+- favorite_object
+- provider_request_log 또는 집계 메트릭
+
+### Rules
+
+- Flyway 사용
+- UUID 또는 명확한 식별자 전략
+- 생성 및 수정 시각 저장
+- 정확한 위치 저장 최소화
+- 개인정보 보존 정책 고려
+- 외부 API 원본 응답의 무분별한 영구 저장 금지
+
+---
+
+## 13. Error Architecture
+
+공통 오류 응답:
+
+```json
+{
+  "code": "WEATHER_PROVIDER_UNAVAILABLE",
+  "message": "현재 날씨 정보를 불러올 수 없습니다.",
+  "traceId": "..."
+}
+```
+
+오류 유형:
+
+- Validation Error
+- Resource Not Found
+- External Provider Error
+- Domain Rule Error
+- Authentication Error
+- Internal Error
+
+사용자 메시지와 내부 디버깅 정보를 분리합니다.
+
+---
+
+## 14. Security Architecture
+
+### MVP
+
+- 공개 조회 API
+- 입력 검증
+- Rate Limiting 검토
+- CORS 제한
+- 보안 헤더
+- 비밀값 환경변수 관리
+
+### Later
+
+- OAuth 2.0 로그인
+- 사용자별 리소스 권한
+- 세션 또는 토큰 전략
+- 계정 삭제
+- 위치 정보 보호
+
+---
+
+## 15. Observability
+
+최소 운영 관측 항목:
+
+- API 응답 시간
+- 외부 API 응답 시간
+- 외부 API 실패율
+- 캐시 적중률
+- HTTP 상태 코드 분포
+- 예외 발생 수
+- 추천 생성 실패율
+
+로그에는 다음을 남기지 않습니다.
+
+- 비밀번호
+- 액세스 토큰
+- API 키
+- 사용자의 정확한 위치
+- 불필요한 외부 API 전체 응답
+
+---
+
+## 16. Deployment Architecture
+
+### Initial
+
+```text
+Frontend → Vercel
+Backend → Container Platform
+Database → Managed PostgreSQL
+```
+
+### Production Requirements
+
+- HTTPS
+- 환경별 설정 분리
+- 자동 배포
+- DB 백업
+- 헬스 체크
+- 로그 수집
+- 롤백 가능성
+- 운영 비밀 관리
+
+---
+
+## 17. Architecture Review Triggers
+
+다음 상황에서는 아키텍처 결정을 다시 검토합니다.
+
+- 외부 API 비용 증가
+- 응답 속도 목표 미달
+- 다중 인스턴스 필요
+- 천문 계산 부하 증가
+- Python 생태계 의존 기능 등장
+- 사용자 위치 데이터 저장 확대
+- 알림과 배치 처리 도입
+- 모바일 앱 API 제공

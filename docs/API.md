@@ -1,0 +1,263 @@
+# API Guidelines
+
+## 1. General Principles
+
+- REST 스타일 JSON API를 사용합니다.
+- URL은 리소스를 표현합니다.
+- 동작은 HTTP 메서드로 표현합니다.
+- API 응답에 JPA Entity를 직접 노출하지 않습니다.
+- 모든 날짜와 시각 형식을 명시합니다.
+- 오류 응답 형식을 통일합니다.
+- 공개 API 변경은 하위 호환성을 고려합니다.
+
+---
+
+## 2. Base Path
+
+```text
+/api/v1
+```
+
+초기 API 예시:
+
+```text
+GET /api/v1/observations
+GET /api/v1/locations/search
+GET /api/v1/locations/{locationId}
+POST /api/v1/users/me/locations
+GET /api/v1/users/me/records
+POST /api/v1/users/me/records
+```
+
+---
+
+## 3. Observation Forecast API
+
+### Request
+
+```http
+GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
+```
+
+### Parameters
+
+| Name | Type | Required | Description |
+|---|---|---:|---|
+| latitude | decimal | yes | -90 ~ 90 |
+| longitude | decimal | yes | -180 ~ 180 |
+| date | ISO date | yes | 조회 위치 기준 로컬 날짜 |
+
+타임존은 서버가 좌표를 기반으로 판별하는 것을 우선합니다.
+
+### Response
+
+```json
+{
+  "location": {
+    "latitude": 37.5665,
+    "longitude": 126.978,
+    "timezone": "Asia/Seoul"
+  },
+  "date": "2026-08-01",
+  "summary": {
+    "score": 82,
+    "grade": "GOOD",
+    "recommended": true,
+    "bestWindow": {
+      "start": "2026-08-01T22:00:00+09:00",
+      "end": "2026-08-02T00:00:00+09:00"
+    },
+    "message": "밤 10시 이후 관측 조건이 가장 좋습니다."
+  },
+  "astronomy": {
+    "sunset": "2026-08-01T19:40:00+09:00",
+    "civilTwilightEnd": "2026-08-01T20:08:00+09:00",
+    "nauticalTwilightEnd": "2026-08-01T20:42:00+09:00",
+    "astronomicalTwilightEnd": "2026-08-01T21:18:00+09:00",
+    "moonrise": "2026-08-01T22:31:00+09:00",
+    "moonset": "2026-08-02T09:42:00+09:00",
+    "moonIllumination": 0.18
+  },
+  "hourly": [
+    {
+      "time": "2026-08-01T22:00:00+09:00",
+      "score": 84,
+      "grade": "GOOD",
+      "weather": {
+        "temperatureCelsius": 24.1,
+        "cloudCoverPercent": 12,
+        "precipitationProbabilityPercent": 0,
+        "humidityPercent": 62,
+        "visibilityMeters": 18000,
+        "windSpeedMetersPerSecond": 2.1
+      },
+      "reasons": [
+        {
+          "code": "LOW_CLOUD_COVER",
+          "impact": 8,
+          "message": "구름이 적어 관측에 유리합니다."
+        }
+      ]
+    }
+  ],
+  "generatedAt": "2026-08-01T10:02:15Z"
+}
+```
+
+---
+
+## 4. Data Conventions
+
+### Date
+
+```text
+YYYY-MM-DD
+```
+
+### Date-Time
+
+RFC 3339 형식과 타임존 오프셋을 사용합니다.
+
+```text
+2026-08-01T22:00:00+09:00
+```
+
+### Percentage
+
+퍼센트는 0~100 정수 또는 소수로 표현합니다.
+
+필드명에 `Percent`를 포함합니다.
+
+### Ratio
+
+0~1 비율은 필드명으로 의미를 명확히 합니다.
+
+예:
+
+```text
+moonIllumination: 0.18
+```
+
+### Units
+
+단위를 필드명에 포함합니다.
+
+- `temperatureCelsius`
+- `visibilityMeters`
+- `windSpeedMetersPerSecond`
+
+---
+
+## 5. Error Response
+
+```json
+{
+  "code": "INVALID_COORDINATE",
+  "message": "위도 또는 경도 값이 올바르지 않습니다.",
+  "details": [
+    {
+      "field": "latitude",
+      "reason": "must be between -90 and 90"
+    }
+  ],
+  "traceId": "01J..."
+}
+```
+
+### Standard Error Codes
+
+| HTTP | Code | Meaning |
+|---:|---|---|
+| 400 | INVALID_REQUEST | 요청 형식 오류 |
+| 400 | INVALID_COORDINATE | 좌표 검증 오류 |
+| 400 | UNSUPPORTED_DATE | 지원하지 않는 날짜 |
+| 401 | UNAUTHORIZED | 인증 필요 |
+| 403 | FORBIDDEN | 권한 없음 |
+| 404 | RESOURCE_NOT_FOUND | 리소스 없음 |
+| 429 | RATE_LIMIT_EXCEEDED | 호출 제한 초과 |
+| 502 | EXTERNAL_PROVIDER_ERROR | 외부 공급자 오류 |
+| 503 | WEATHER_PROVIDER_UNAVAILABLE | 날씨 공급자 사용 불가 |
+| 503 | ASTRONOMY_PROVIDER_UNAVAILABLE | 천문 공급자 사용 불가 |
+| 500 | INTERNAL_ERROR | 내부 오류 |
+
+내부 예외 메시지와 스택 트레이스를 응답에 노출하지 않습니다.
+
+---
+
+## 6. HTTP Status Rules
+
+- `200 OK`: 정상 조회
+- `201 Created`: 리소스 생성
+- `204 No Content`: 삭제 또는 본문 없는 성공
+- `400 Bad Request`: 검증 실패
+- `401 Unauthorized`: 인증되지 않음
+- `403 Forbidden`: 권한 없음
+- `404 Not Found`: 리소스 없음
+- `409 Conflict`: 상태 충돌
+- `429 Too Many Requests`: 호출 제한
+- `502 Bad Gateway`: 외부 응답 오류
+- `503 Service Unavailable`: 일시적 이용 불가
+- `500 Internal Server Error`: 예상하지 못한 오류
+
+---
+
+## 7. Pagination
+
+기록 목록 등에 커서 기반 페이지네이션을 우선 검토합니다.
+
+```http
+GET /api/v1/users/me/records?cursor=...&size=20
+```
+
+응답 예시:
+
+```json
+{
+  "items": [],
+  "nextCursor": null,
+  "hasNext": false
+}
+```
+
+---
+
+## 8. Idempotency
+
+결제와 같은 기능이 도입되기 전에는 필수는 아니지만,  
+중복 생성 가능성이 있는 API는 멱등성을 고려합니다.
+
+관측 기록 생성 시 클라이언트 요청 ID를 사용할 수 있습니다.
+
+---
+
+## 9. Versioning
+
+초기에는 URL 버전을 사용합니다.
+
+```text
+/api/v1
+```
+
+기존 클라이언트를 깨뜨리는 변경은 새 버전 또는 명시적인 마이그레이션 절차가 필요합니다.
+
+---
+
+## 10. API Documentation
+
+Springdoc OpenAPI를 사용하여 문서를 생성할 수 있습니다.
+
+문서는 구현에서 자동 생성하되,  
+도메인 의미와 예시는 이 문서에서 관리합니다.
+
+---
+
+## 11. API Review Checklist
+
+- 입력 검증이 있는가?
+- 타임존이 명확한가?
+- 단위가 필드명에 포함되는가?
+- 외부 API 모델이 노출되지 않는가?
+- 오류 코드가 일관적인가?
+- 민감 정보가 노출되지 않는가?
+- 캐싱 가능 여부가 검토되었는가?
+- API 변경이 기존 클라이언트를 깨뜨리지 않는가?
