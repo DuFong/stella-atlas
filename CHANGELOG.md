@@ -13,6 +13,7 @@
 ### Changed
 
 - Aligned repository guidance and local setup with `AGENTS.md`.
+- Unified the planned public API inventory and error response contract.
 
 ## v0.1.0
 

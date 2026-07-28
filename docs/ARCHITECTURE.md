@@ -338,9 +338,14 @@ Redis는 다중 인스턴스 운영 또는 공유 캐시 필요성이 확인된 
 {
   "code": "WEATHER_PROVIDER_UNAVAILABLE",
   "message": "현재 날씨 정보를 불러올 수 없습니다.",
-  "traceId": "..."
+  "timestamp": "2026-08-01T10:02:15Z",
+  "path": "/api/v1/observations",
+  "details": []
 }
 ```
+
+요청 추적 기능을 도입하면 실제 추적 컨텍스트의 `traceId`를 추가할 수 있습니다.
+추적 시스템 없이 오류 응답 전용 식별자를 임의로 생성하지 않습니다.
 
 오류 유형:
 
