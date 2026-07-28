@@ -1,20 +1,25 @@
+name: stella-atlas
+
 services:
   postgres:
-    image: postgres:16
-    container_name: stella-atlas-postgres
+    image: postgres:17
     environment:
-      POSTGRES_DB: stella_atlas
-      POSTGRES_USER: stella_atlas
-      POSTGRES_PASSWORD: stella_atlas
+      POSTGRES_DB: ${POSTGRES_DB:-stella_atlas}
+      POSTGRES_USER: ${POSTGRES_USER:-stella_atlas}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-stella_atlas}
     ports:
-      - "5432:5432"
+      - "${POSTGRES_PORT:-5432}:5432"
     volumes:
-      - stella-atlas-postgres-data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U star_observer -d stella_atlas"]
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
       interval: 5s
       timeout: 5s
       retries: 10
+      start_period: 5s
+    restart: unless-stopped
 
 volumes:
-  stella-atlas-postgres-data:
+  postgres-data:

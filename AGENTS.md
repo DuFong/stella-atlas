@@ -1031,6 +1031,9 @@ Notes
 Milestone 0 — Foundation
 ```
 
+Status: Complete. The next milestone must be started explicitly before its
+implementation scope is opened.
+
 ## Milestone Goal
 
 Anyone should be able to clone the repository and understand how to begin development.

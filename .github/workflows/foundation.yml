@@ -1,0 +1,44 @@
+name: Foundation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  repository:
+    name: Validate repository foundation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Verify required files
+        shell: bash
+        run: |
+          required_files=(
+            AGENTS.md
+            README.md
+            CONTRIBUTING.md
+            docker-compose.yml
+            docs/VISION.md
+            docs/PRODUCT.md
+            docs/ROADMAP.md
+            docs/ARCHITECTURE.md
+            docs/CODING_STANDARDS.md
+            docs/API.md
+            docs/OBSERVATION_SCORE.md
+            docs/DECISIONS.md
+          )
+
+          for required_file in "${required_files[@]}"; do
+            test -s "${required_file}"
+          done
+
+      - name: Validate Docker Compose
+        run: docker compose config --quiet
