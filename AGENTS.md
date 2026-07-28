@@ -1042,8 +1042,8 @@ Notes
 Milestone 1 — Backend Foundation
 ```
 
-Status: Implementation complete. Docker-backed integration verification is
-pending before the milestone is closed.
+Status: Complete. Backend and Foundation GitHub Actions passed with
+Docker-backed integration verification.
 
 ## Milestone Goal
 
