@@ -617,13 +617,19 @@ Base API path:
 /api/v1
 ```
 
-Example:
+The primary public product API is:
 
 ```text
 GET /api/v1/observations
-GET /api/v1/observations/current
-GET /api/v1/weather/forecast
 ```
+
+Weather and astronomy providers are internal integrations. Do not expose
+provider-oriented endpoints such as `/api/v1/weather/forecast` unless a
+separate public use case is approved and documented.
+
+Planned location and user APIs must be marked as planned in documentation until
+their milestone is active. The canonical endpoint inventory and contracts live
+in `docs/API.md`.
 
 ## Response Rules
 
@@ -643,10 +649,15 @@ All API errors should eventually follow a common structure:
 {
   "code": "WEATHER_PROVIDER_UNAVAILABLE",
   "message": "Weather information is temporarily unavailable.",
-  "timestamp": "2026-07-27T20:00:00+09:00",
-  "path": "/api/v1/weather/forecast"
+  "timestamp": "2026-07-27T11:00:00Z",
+  "path": "/api/v1/observations",
+  "details": []
 }
 ```
+
+Error timestamps use UTC. `details` is always an array and is empty when no
+field-level detail applies. Add a `traceId` only when request tracing is
+implemented and the value is backed by the tracing context.
 
 Do not return stack traces or internal exception messages to clients.
 

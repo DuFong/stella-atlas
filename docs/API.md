@@ -12,26 +12,33 @@
 
 ---
 
-## 2. Base Path
+## 2. API Inventory and Status
 
-```text
-/api/v1
-```
+제품 API의 기본 경로는 `/api/v1`입니다. Actuator 운영 엔드포인트는 제품 API에
+포함하지 않습니다.
 
-초기 API 예시:
+| Status | Milestone | Method and Path | Purpose |
+|---|---:|---|---|
+| Implemented | 1 | `GET /actuator/health` | 애플리케이션과 의존 서비스 상태 |
+| Implemented | 1 | `GET /actuator/info` | 빌드 및 애플리케이션 정보 확장 지점 |
+| Planned core | 3~5 | `GET /api/v1/observations` | 위치와 날짜의 통합 관측 예보 |
+| Planned support | TBD | `GET /api/v1/locations/search` | 지역명 검색과 좌표·타임존 확인 |
+| Planned user | 6 | `GET /api/v1/users/me/locations/{locationId}` | 저장한 관측 장소 조회 |
+| Planned user | 6 | `POST /api/v1/users/me/locations` | 관측 장소 저장 |
+| Planned user | 6 | `GET /api/v1/users/me/records` | 관측 기록 목록 |
+| Planned user | 6 | `POST /api/v1/users/me/records` | 관측 기록 생성 |
 
-```text
-GET /api/v1/observations
-GET /api/v1/locations/search
-GET /api/v1/locations/{locationId}
-POST /api/v1/users/me/locations
-GET /api/v1/users/me/records
-POST /api/v1/users/me/records
-```
+`Planned` API는 구현된 계약이 아니며 해당 마일스톤에서 요청·응답, 인증과 오류
+처리를 확정합니다. 날씨와 천문 공급자는 내부 Adapter이므로
+`/api/v1/weather/forecast` 같은 공급자 중심 API를 기본 공개 표면으로 만들지
+않습니다.
 
 ---
 
 ## 3. Observation Forecast API
+
+Status: Planned core API. Milestone 3의 날씨, Milestone 4의 천문 정보와
+Milestone 5의 관측 점수가 완성되면서 단계적으로 구현합니다.
 
 ### Request
 
@@ -154,15 +161,29 @@ moonIllumination: 0.18
 {
   "code": "INVALID_COORDINATE",
   "message": "위도 또는 경도 값이 올바르지 않습니다.",
+  "timestamp": "2026-08-01T10:02:15Z",
+  "path": "/api/v1/observations",
   "details": [
     {
       "field": "latitude",
       "reason": "must be between -90 and 90"
     }
-  ],
-  "traceId": "01J..."
+  ]
 }
 ```
+
+### Error Fields
+
+| Field | Type | Required | Description |
+|---|---|---:|---|
+| `code` | string | yes | 클라이언트가 분기할 수 있는 안정적인 오류 코드 |
+| `message` | string | yes | 내부 구현을 노출하지 않는 사용자용 메시지 |
+| `timestamp` | UTC date-time | yes | 오류 응답 생성 시각 |
+| `path` | string | yes | 오류가 발생한 요청 경로, query string 제외 |
+| `details` | array | yes | 필드별 오류 목록, 해당 사항이 없으면 빈 배열 |
+
+`traceId`는 실제 요청 추적 기능이 도입되고 추적 컨텍스트에서 값을 얻을 수 있을
+때 추가합니다. 임의의 UUID를 오류 응답에서 생성하지 않습니다.
 
 ### Standard Error Codes
 
@@ -203,7 +224,8 @@ moonIllumination: 0.18
 
 ## 7. Pagination
 
-기록 목록 등에 커서 기반 페이지네이션을 우선 검토합니다.
+Milestone 6의 기록 목록에는 커서 기반 페이지네이션을 우선 검토합니다. 아래
+계약은 아직 확정되지 않은 예시입니다.
 
 ```http
 GET /api/v1/users/me/records?cursor=...&size=20
@@ -244,10 +266,11 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ## 10. API Documentation
 
-Springdoc OpenAPI를 사용하여 문서를 생성할 수 있습니다.
+Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정책에 따라
+결정합니다.
 
-문서는 구현에서 자동 생성하되,  
-도메인 의미와 예시는 이 문서에서 관리합니다.
+도입하는 경우 구현에서 기계적인 명세를 생성하고, 도메인 의미와 예시는 이
+문서에서 관리합니다.
 
 ---
 
