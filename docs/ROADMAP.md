@@ -27,6 +27,8 @@
 - 오류 응답과 헬스 체크 기반
 - 테스트 및 정적 검증
 
+상태: 구현 완료, Docker 기반 통합 검증 대기
+
 ## Milestone 2 — Frontend Foundation
 
 목표: Node.js 22 LTS와 Next.js 기반 프런트엔드를 로컬과 CI에서 검증할 수

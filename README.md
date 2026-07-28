@@ -5,8 +5,8 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-현재 저장소는 **Milestone 0 — Foundation** 단계입니다. 애플리케이션 기능은 아직
-구현하지 않았으며, 개발 규칙과 저장소 기반을 먼저 확립하고 있습니다.
+현재 저장소는 **Milestone 1 — Backend Foundation** 단계입니다. Spring Boot
+백엔드 기반은 구현되었으며 제품 기능은 아직 구현하지 않았습니다.
 
 ## Technology
 
@@ -22,7 +22,7 @@ StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보�
 ```text
 stella-atlas/
 ├── .github/       # GitHub Actions와 협업 템플릿
-├── backend/       # Milestone 1에서 초기화할 Spring Boot 애플리케이션
+├── backend/       # Spring Boot 애플리케이션
 ├── frontend/      # Milestone 2에서 초기화할 Next.js 애플리케이션
 ├── docker/        # 애플리케이션 컨테이너 구성
 ├── docs/          # 제품, 아키텍처, API 및 개발 문서
@@ -38,7 +38,7 @@ stella-atlas/
 
 - Git
 - Docker Desktop 또는 Docker Engine과 Compose 플러그인
-- Java 21 (Milestone 1부터 필요)
+- Java 21
 - Node.js 22 LTS (Milestone 2부터 필요)
 
 ## Local Development
@@ -61,8 +61,20 @@ docker compose down
 볼륨까지 삭제하는 `docker compose down --volumes`는 로컬 데이터가 필요하지
 않을 때만 사용합니다.
 
-백엔드와 프런트엔드 실행·검증 명령은 각 모듈이 초기화되는 마일스톤에서
-추가합니다. 존재하지 않는 스크립트는 실행하지 않습니다.
+백엔드를 실행하고 검증합니다.
+
+```bash
+cd backend
+./gradlew bootRun
+./gradlew check
+```
+
+애플리케이션 상태는 `GET http://localhost:8080/actuator/health`에서 확인할 수
+있습니다. PostgreSQL 연결 정보는 루트 `.env.example`과
+`backend/src/main/resources/application.yml`을 기준으로 합니다.
+
+프런트엔드 실행·검증 명령은 Milestone 2에서 모듈을 초기화할 때 추가합니다.
+존재하지 않는 스크립트는 실행하지 않습니다.
 
 ## Documentation
 

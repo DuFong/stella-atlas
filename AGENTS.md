@@ -1028,28 +1028,27 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 0 — Foundation
+Milestone 1 — Backend Foundation
 ```
 
-Status: Complete. The next milestone must be started explicitly before its
-implementation scope is opened.
+Status: Implementation complete. Docker-backed integration verification is
+pending before the milestone is closed.
 
 ## Milestone Goal
 
-Anyone should be able to clone the repository and understand how to begin development.
+The Java 21 and Spring Boot backend foundation should build and run locally and
+in CI with PostgreSQL and Flyway.
 
 ## Current Scope
 
 Allowed work:
 
-- repository initialization;
-- documentation;
-- Git configuration;
-- GitHub templates;
-- GitHub Actions foundation;
-- development environment definition;
-- backend and frontend directory preparation;
-- Docker foundation.
+- Gradle project and Wrapper;
+- Spring Boot application configuration;
+- PostgreSQL and Flyway integration;
+- shared error response foundation;
+- Actuator health checks;
+- backend tests and CI verification.
 
 Out of scope until explicitly started:
 
@@ -1058,20 +1057,18 @@ Out of scope until explicitly started:
 - Observation Score implementation;
 - authentication;
 - observation records;
+- frontend initialization;
 - production deployment.
 
-## Milestone 0 Completion Criteria
+## Milestone 1 Completion Criteria
 
-- GitHub repository created;
-- initial commit pushed to `main`;
-- repository structure established;
-- branch strategy documented;
-- commit convention documented;
-- issue templates added;
-- pull request template added;
-- development versions documented;
-- basic CI configuration added;
-- local development instructions documented.
+- Gradle Wrapper and Java 21 toolchain configured;
+- Spring Boot 3.5.x application starts;
+- PostgreSQL 17 and Flyway integrate successfully;
+- shared validation error responses are tested;
+- Actuator health endpoint reports application status;
+- backend checks run in GitHub Actions;
+- local backend commands are documented.
 
 ---
 
