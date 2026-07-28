@@ -1039,27 +1039,26 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 1 — Backend Foundation
+Milestone 2 — Frontend Foundation
 ```
 
-Status: Complete. Backend and Foundation GitHub Actions passed with
-Docker-backed integration verification.
+Status: Implementation complete. Frontend GitHub Actions verification is
+pending before the milestone is closed.
 
 ## Milestone Goal
 
-The Java 21 and Spring Boot backend foundation should build and run locally and
-in CI with PostgreSQL and Flyway.
+The Node.js 22 and Next.js frontend foundation should lint, type-check, test,
+and build locally and in CI.
 
 ## Current Scope
 
 Allowed work:
 
-- Gradle project and Wrapper;
-- Spring Boot application configuration;
-- PostgreSQL and Flyway integration;
-- shared error response foundation;
-- Actuator health checks;
-- backend tests and CI verification.
+- Next.js App Router and TypeScript strict mode;
+- Tailwind CSS and a mobile-first base layout;
+- loading, empty, not-found, and error state foundations;
+- frontend unit tests and static checks;
+- frontend GitHub Actions verification.
 
 Out of scope until explicitly started:
 
@@ -1068,18 +1067,18 @@ Out of scope until explicitly started:
 - Observation Score implementation;
 - authentication;
 - observation records;
-- frontend initialization;
 - production deployment.
 
-## Milestone 1 Completion Criteria
+## Milestone 2 Completion Criteria
 
-- Gradle Wrapper and Java 21 toolchain configured;
-- Spring Boot 3.5.x application starts;
-- PostgreSQL 17 and Flyway integrate successfully;
-- shared validation error responses are tested;
-- Actuator health endpoint reports application status;
-- backend checks run in GitHub Actions;
-- local backend commands are documented.
+- Node.js 22 and Next.js application configured;
+- TypeScript strict mode and Tailwind CSS enabled;
+- mobile-first base layout implemented;
+- loading, not-found, and error states implemented;
+- frontend unit tests pass;
+- lint, type-check, test, and production build pass;
+- frontend checks run in GitHub Actions;
+- local frontend commands are documented.
 
 ---
 

@@ -219,3 +219,33 @@ Frontend, Backend, Docs, Infrastructure를 하나의 Git 저장소에서 관리�
 
 - CI 작업을 경로 기반으로 분리해야 합니다.
 - 저장소가 커지면 구조 재검토가 필요할 수 있습니다.
+
+---
+
+## ADR-011 — Frontend Foundation Versions and Dependency Auditing
+
+- Status: Accepted
+- Date: 2026-07-28
+
+### Context
+
+Milestone 2에는 재현 가능한 Node.js와 Next.js 버전, 테스트 및 정적 검증 기반이
+필요합니다. 초기 스캐폴딩 의존성에서는 PostCSS, Sharp와 glob 처리 라이브러리에
+대한 보안 경고가 확인되었습니다.
+
+### Decision
+
+- Node.js 22.23.1과 Next.js 16.2.12를 고정합니다.
+- App Router, TypeScript strict mode와 Tailwind CSS 4를 사용합니다.
+- Vitest와 Testing Library로 동기 Server Component와 Client Component의
+  단위 테스트를 작성합니다.
+- npm lockfile을 커밋하고 CI에서는 `npm ci`를 사용합니다.
+- 직접 업그레이드할 수 없는 전이 의존성은 호환되는 보안 수정 버전으로
+  `overrides`하고 lint, test와 production build로 호환성을 검증합니다.
+
+### Consequences
+
+- Node.js 22.x가 로컬 프런트엔드 개발의 필수 조건입니다.
+- Next.js 또는 상위 도구가 수정 의존성을 직접 포함하면 `overrides`를
+  재검토하고 불필요한 항목을 제거해야 합니다.
+- async Server Component는 Vitest 대신 향후 E2E 테스트로 검증합니다.
