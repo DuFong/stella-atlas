@@ -1,0 +1,2 @@
+-- Initial Flyway migration.
+-- Domain tables are introduced by new immutable migrations in their milestones.
