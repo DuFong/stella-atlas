@@ -5,9 +5,9 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-현재 저장소는 **Milestone 2 — Frontend Foundation** 단계입니다. Spring Boot
-백엔드와 Next.js 프런트엔드 기반은 구현되었으며 제품 기능은 아직 구현하지
-않았습니다.
+현재 저장소는 **Milestone 3 — Weather Integration** 단계입니다. Spring Boot
+백엔드와 Next.js 프런트엔드 기반을 완료했으며, 공급자 독립적인 날씨 계약과
+시간대별 예보 연동을 구현할 예정입니다.
 
 ## Technology
 

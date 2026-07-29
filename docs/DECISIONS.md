@@ -249,3 +249,33 @@ Milestone 2에는 재현 가능한 Node.js와 Next.js 버전, 테스트 및 정�
 - Next.js 또는 상위 도구가 수정 의존성을 직접 포함하면 `overrides`를
   재검토하고 불필요한 항목을 제거해야 합니다.
 - async Server Component는 Vitest 대신 향후 E2E 테스트로 검증합니다.
+
+---
+
+## ADR-012 — Milestone Identifiers in Git History
+
+- Status: Accepted
+- Date: 2026-07-29
+
+### Context
+
+마일스톤 중심으로 개발하지만 브랜치, 커밋과 Pull Request 제목만으로는 작업이
+어느 마일스톤에 속하는지 빠르게 식별하기 어렵습니다. Conventional Commits와
+기존 소문자 브랜치 규칙도 계속 유지해야 합니다.
+
+### Decision
+
+- 마일스톤 작업 브랜치는 접두사 바로 뒤에 소문자 `m<number>`를 사용합니다.
+  예: `feature/m3-weather-integration`
+- 커밋과 Pull Request 제목은 Conventional Commit의 콜론 뒤에 대문자
+  `[M<number>]`를 사용합니다.
+  예: `feat(weather): [M3] add weather forecast provider interface`
+- 여러 마일스톤에 걸친 유지보수 작업은 별도 합의가 없다면 현재 활성
+  마일스톤을 사용합니다.
+
+### Consequences
+
+- Git 기록과 브랜치 목록에서 마일스톤 범위를 바로 확인할 수 있습니다.
+- 기존 Conventional Commit type과 optional scope를 유지하므로 자동화 도구와의
+  호환성을 보존합니다.
+- 마일스톤 전환 시 활성 마일스톤 문서와 새 작업 식별자를 함께 갱신해야 합니다.
