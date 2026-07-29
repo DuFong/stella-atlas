@@ -21,6 +21,9 @@
 - Cross-midnight best observation window selection.
 - Public observation forecast API combining weather, astronomy, and scores.
 - Server-rendered observation search and result UI connected to the backend API.
+- Google OIDC login and Spring Security session foundation.
+- Authenticated current-user API with JSON authentication errors and CSRF protection.
+- Responsive Google login, current-user, and session logout frontend UI.
 
 ### Changed
 
@@ -30,6 +33,8 @@
 - Added milestone identifiers to branch, commit, and pull request conventions.
 - Closed Milestone 3 and activated Milestone 4 astronomy engine work.
 - Closed Milestone 4 and activated Milestone 5 observation score work.
+- Closed Milestone 5 and activated Milestone 6 user feature work.
+- Completed Milestone 6 authentication foundation and planned Milestone 7 OAuth integration and location library.
 
 ## v0.1.0
 

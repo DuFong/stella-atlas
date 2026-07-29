@@ -182,7 +182,7 @@ MVP에서는 FastAPI 또는 Astropy 기반 별도 서비스를 만들지 않습�
 
 ## ADR-009 — Public Core Without Login
 
-- Status: Proposed
+- Status: Accepted
 - Date: 2026-07-27
 
 ### Decision
@@ -411,3 +411,42 @@ Milestone 5에는 날씨와 천문 조건을 동일 입력에 대해 항상 같�
   달빛 영향은 과대평가할 수 있습니다.
 - 대기 투명도와 시상은 신뢰 가능한 입력 데이터와 검증 근거가 생길 때 별도
   규칙으로 추가합니다.
+
+---
+
+## ADR-016 — Google OIDC Login with Spring Security Session
+
+- Status: Accepted
+- Date: 2026-07-29
+
+### Context
+
+향후 저장 장소와 관측 기록에는 사용자 신원과 소유권 검증이 필요하지만, 핵심
+관측 조회는 로그인 없이 유지해야 합니다. 자체 비밀번호 인증은 비밀번호 보관,
+재설정과 검증 책임을 추가하며 초기 제품의 핵심 가치가 아닙니다.
+
+### Decision
+
+- Google OpenID Connect를 첫 로그인 provider로 선택합니다.
+- Spring Security OAuth2 Client의 Authorization Code 로그인을 사용합니다.
+- 인증 상태는 백엔드 HTTP session으로 유지합니다.
+- Google client registration은 `oauth` Spring profile에서만 활성화하고 client
+  ID와 secret은 환경변수로 주입합니다.
+- `GET /api/v1/observations`는 공개로 유지하고
+  `/api/v1/users/me/**`는 인증된 요청만 허용합니다.
+- 상태 변경 요청의 CSRF 보호를 유지하며 token은 전용 API로 발급합니다.
+- 외부 provider subject, OAuth token과 session identifier는 공개 API 응답에
+  포함하지 않습니다.
+
+### Consequences
+
+- 사용자는 별도 StellaAtlas 비밀번호를 만들거나 관리하지 않습니다.
+- 로컬 OAuth 테스트에는 Google OAuth client와 등록된 redirect URI가 필요합니다.
+- 기본 세션 저장소는 단일 백엔드 인스턴스에 적합합니다. 다중 인스턴스 배포
+  전에 Spring Session과 공유 저장소 또는 다른 인증 상태 전략을 결정해야 합니다.
+- 프런트엔드는 로그인 redirect와 session cookie를 사용하고, 서버에서 사용자
+  API를 호출할 때 요청 cookie를 전달해야 합니다.
+- provider 계정을 내부 사용자 UUID에 연결하는 영속화는 저장 장소 API를
+  구현하기 전에 추가합니다.
+- Google Cloud OAuth 애플리케이션 등록과 실제 계정 연동은 Milestone 7에서
+  진행하며, Milestone 6은 client·보안 경계와 UI 기반까지만 완료합니다.

@@ -5,10 +5,10 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-현재 저장소는 **Milestone 5 — Observation Score** 단계입니다. 날씨와 천문
-계산 기반을 완료했으며, 시간대별 조건을 설명 가능한 점수·등급·이유로 평가하고
-최적 관측 시간을 선택하는 기능과 통합 관측 API를 구현했습니다. Milestone 종료
-전 GitHub Actions 검증이 남아 있습니다.
+**Milestone 6 — Authentication Foundation**을 완료했습니다. 비로그인 관측
+조회는 계속 제공하면서 OAuth2/OIDC와 Spring Security 기반 인증 경계 및
+프런트엔드 로그인 흐름을 준비했습니다. 실제 Google OAuth 애플리케이션 등록과
+즐겨찾기·최근 조회 위치 기능은 Milestone 7에서 진행합니다.
 
 ## Technology
 
@@ -74,6 +74,36 @@ cd backend
 애플리케이션 상태는 `GET http://localhost:8080/actuator/health`에서 확인할 수
 있습니다. PostgreSQL 연결 정보는 루트 `.env.example`과
 `backend/src/main/resources/application.yml`을 기준으로 합니다.
+
+Milestone 6의 Google 로그인 기반은 OAuth 프로필에서만 활성화됩니다. 실제
+Google Cloud Console 등록과 운영 연결은 Milestone 7 범위이며, 연동할 때 OAuth
+클라이언트에 다음 로컬 redirect URI를 등록합니다.
+
+```text
+http://localhost:8080/login/oauth2/code/google
+```
+
+로컬 환경변수를 설정한 뒤 백엔드를 실행합니다. Client secret은 `.env`를 포함한
+저장소 파일에 커밋하지 않습니다.
+
+```bash
+export GOOGLE_CLIENT_ID="your-google-client-id"
+export GOOGLE_CLIENT_SECRET="your-google-client-secret"
+export FRONTEND_BASE_URL="http://localhost:3000"
+SPRING_PROFILES_ACTIVE=oauth ./gradlew bootRun
+```
+
+로그인은 `GET http://localhost:8080/oauth2/authorization/google`에서 시작하며
+성공하면 프런트엔드로 돌아옵니다. 로그인한 사용자 정보는
+`GET /api/v1/users/me`에서 확인합니다. OAuth 프로필 없이 실행해도 공개 관측
+API는 사용할 수 있지만 로그인 시작 endpoint는 활성화되지 않습니다.
+
+프런트엔드의 `Google로 로그인` 버튼은 `/auth/login` Route Handler를 통해 이
+로그인 흐름을 시작합니다. 로그인 후에는 사용자 이름과 로그아웃 버튼을 표시하며,
+로그아웃 Route Handler가 CSRF token과 backend session cookie를 전달합니다.
+Milestone 7의 Google OAuth 등록 전에는 `AUTH_ENABLED=false`를 유지해 버튼을
+준비 중 상태로 표시하고, 실제 client 설정과 callback 검증 후 `true`로
+전환합니다.
 
 통합 관측 결과는 다음 API에서 확인할 수 있습니다.
 

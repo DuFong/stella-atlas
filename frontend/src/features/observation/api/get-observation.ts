@@ -4,14 +4,12 @@ import type {
   ObservationForecast,
   ObservationQuery,
 } from "@/features/observation/types/observation";
-
-const DEFAULT_API_BASE_URL = "http://localhost:8080";
+import { getBackendApiUrl } from "@/lib/backend-api";
 
 export async function getObservation(
   query: ObservationQuery,
 ): Promise<ObservationApiResult> {
-  const baseUrl = process.env.API_BASE_URL ?? DEFAULT_API_BASE_URL;
-  const url = new URL("/api/v1/observations", baseUrl);
+  const url = getBackendApiUrl("/api/v1/observations");
   url.searchParams.set("latitude", query.latitude);
   url.searchParams.set("longitude", query.longitude);
   url.searchParams.set("date", query.date);

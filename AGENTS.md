@@ -150,8 +150,9 @@ Milestone 2 — Frontend Foundation
 Milestone 3 — Weather Integration
 Milestone 4 — Astronomy Engine
 Milestone 5 — Observation Score
-Milestone 6 — User Features
-Milestone 7 — Deployment
+Milestone 6 — Authentication Foundation
+Milestone 7 — OAuth Integration and Location Library
+Milestone 8 — Deployment
 ```
 
 Codex must not implement future milestone features unless explicitly requested.
@@ -1049,66 +1050,56 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 5 — Observation Score
+No active implementation milestone
 ```
 
-Status: Implementation complete. Backend GitHub Actions verification is pending
-before the milestone is closed.
+Status: Milestone 6 is complete. Milestone 7 is planned but has not been
+explicitly started.
 
 ## Milestone Goal
 
-The backend should combine hourly weather and astronomy conditions into
-deterministic, explainable observation scores and select the best observation
-window for a local date.
+Milestone 6 keeps the core observation forecast available without login while
+establishing the OAuth2/OIDC, Spring Security session, CSRF, current-user, and
+frontend account UI foundation.
 
 ## Current Scope
 
 Allowed work:
 
-- independent scoring rules for cloud cover, precipitation probability,
-  visibility, humidity, wind, moon illumination, and twilight;
-- explicit rule weights, thresholds, grade boundaries, and recommendation
-  criteria;
-- stable reason codes, signed impacts, and user-facing messages;
-- hourly observation evaluation from project-owned weather and astronomy
-  models;
-- deterministic best observation window selection and no-recommendation
-  outcomes;
-- missing required data policy and score clamping;
-- domain and application tests for rule boundaries and combined outcomes;
-- final composition of the public `GET /api/v1/observations` API when the
-  domain contracts are stable.
-- server-rendered frontend integration for observation query, summary, hourly
-  conditions, loading, empty, and expected error states.
+- documentation and verification needed to close Milestone 6;
+- fixes to the completed authentication foundation;
+- preparation that does not implement Milestone 7 product behavior.
 
 Out of scope until explicitly started:
 
-- public provider-oriented weather endpoints;
-- authentication;
+- Google Cloud OAuth consent screen and client registration;
+- internal user persistence and provider identity mapping;
+- favorite observation locations;
+- recent queried location history;
 - observation records;
+- social networking and community features;
+- observation photo uploads;
+- notifications and personalized recommendations;
+- public provider-oriented weather or astronomy endpoints;
 - production deployment.
 
-## Milestone 5 Completion Criteria
+## Milestone 6 Completion Criteria
 
-- each factor is implemented as an independently testable rule with documented
-  thresholds and impacts;
-- scores are deterministic and clamped to the `0..100` range;
-- grade and recommendation boundaries are explicit and tested;
-- each material adjustment has a stable reason code, signed impact, and
-  readable message;
-- twilight and moon effects are aligned with each hourly weather instant in the
-  resolved timezone;
-- the best contiguous observation window is selected deterministically, with
-  explicit tie-breaking and no-recommendation behavior;
-- required missing data does not silently produce a normal score;
-- `docs/OBSERVATION_SCORE.md`, architecture, API, and decision records match the
-  implementation;
-- the frontend calls the observation API through a centralized server-side
-  client and renders query, result, loading, empty, and error states;
-- frontend lint, type-check, tests, and production build pass;
-- backend tests and checks pass locally and in GitHub Actions;
-- no new environment variable is introduced unless scoring configuration is
-  intentionally externalized and documented.
+- the public observation forecast remains usable without an account;
+- Spring Security distinguishes public and authenticated endpoint boundaries;
+- Google OIDC client configuration is isolated behind an explicit profile and
+  environment variables;
+- current-user, CSRF, and session logout endpoints have stable contracts;
+- authentication errors use the shared JSON error response;
+- OAuth tokens, provider subjects, session identifiers, and secrets are not
+  exposed through public responses or committed configuration;
+- responsive login, current-user, unavailable, and logout UI states are
+  implemented;
+- frontend route handlers connect login and CSRF-protected logout flows without
+  exposing the backend base URL to browser code;
+- backend checks and frontend lint, type-check, tests, and production build pass;
+- API, architecture, decision, setup, and privacy documentation match the
+  implementation.
 
 ---
 
