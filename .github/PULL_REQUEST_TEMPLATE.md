@@ -1,7 +1,14 @@
 ## Summary
 
+- 마일스톤: M<number>
 - 변경 목적:
 - 주요 변경:
+
+PR 제목은 Conventional Commits와 마일스톤 형식을 사용합니다.
+
+```text
+<type>(<optional-scope>): [M<milestone-number>] <description>
+```
 
 ## Design Decisions
 

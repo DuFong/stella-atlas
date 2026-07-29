@@ -39,13 +39,18 @@
 - 테스트, 린트와 타입 검사
 - 로딩, 빈 상태 및 오류 상태 기반
 
-상태: 구현 완료, GitHub Actions 검증 대기
+상태: 완료
 
 ## Milestone 3 — Weather Integration
+
+목표: 외부 날씨 공급자를 내부 계약으로 격리하고 시간대별 예보를 안정적으로
+StellaAtlas 날씨 모델로 변환합니다.
 
 - 날씨 공급자 인터페이스와 Adapter
 - 시간대별 예보 변환
 - 타임아웃, 오류 매핑과 캐싱
+
+상태: 구현 완료, GitHub Actions 검증 대기
 
 ## Milestone 4 — Astronomy Engine
 

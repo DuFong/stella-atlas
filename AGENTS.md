@@ -204,23 +204,32 @@ chore/
 Examples:
 
 ```text
-feature/backend-initialization
-feature/weather-provider
-fix/observation-score-rounding
-docs/update-architecture
-refactor/weather-domain
-test/add-score-calculator-tests
-build/configure-gradle
-ci/add-backend-checks
-chore/update-gitignore
+feature/m3-weather-provider
+fix/m3-weather-timeout
+docs/m3-update-weather-contract
+refactor/m3-weather-domain
+test/m3-add-provider-mapping-tests
+build/m3-configure-http-client
+ci/m3-add-weather-checks
+chore/m3-update-provider-config
 ```
 
 Branch names must:
 
 - use lowercase letters;
 - use hyphens between words;
+- include the milestone identifier as `m<number>` immediately after the prefix;
 - describe one clear task;
 - avoid vague names such as `update`, `work`, or `changes`.
+
+Format:
+
+```text
+<prefix>/m<milestone-number>-<task-description>
+```
+
+Repository maintenance that spans milestones uses the currently active
+milestone identifier unless a different milestone is explicitly approved.
 
 ---
 
@@ -246,33 +255,34 @@ chore
 ## Format
 
 ```text
-<type>: <description>
+<type>: [M<milestone-number>] <description>
 ```
 
 Optional scope:
 
 ```text
-<type>(<scope>): <description>
+<type>(<scope>): [M<milestone-number>] <description>
 ```
 
 Examples:
 
 ```text
-feat(weather): add weather forecast provider interface
-fix(score): correct cloud coverage weighting
-docs: add repository contribution guide
-refactor(observation): extract score calculation policy
-test(weather): add provider integration tests
-build(backend): configure Java 21 toolchain
-ci: add backend verification workflow
-chore: update gitignore
+feat(weather): [M3] add weather forecast provider interface
+fix(weather): [M3] correct provider timeout handling
+docs: [M3] define weather integration scope
+refactor(weather): [M3] extract forecast mapping policy
+test(weather): [M3] add provider integration tests
+build(backend): [M3] configure weather client
+ci: [M3] add weather verification workflow
+chore: [M3] update provider configuration
 ```
 
 ## Commit Message Rules
 
 - Write in English.
 - Use the imperative mood.
-- Start the description with a lowercase letter.
+- Add the uppercase milestone identifier immediately after the colon.
+- Start the description after the milestone identifier with a lowercase letter.
 - Do not end the subject with a period.
 - Keep the subject concise.
 - Each commit should represent one logical change.
@@ -290,9 +300,9 @@ misc changes
 Good examples:
 
 ```text
-build(backend): initialize Spring Boot application
-docs: define GitHub workflow
-chore: add repository metadata files
+build(backend): [M3] configure weather client
+docs: [M3] define weather integration scope
+chore: [M3] update provider configuration
 ```
 
 ---
@@ -308,7 +318,7 @@ Use the same format as Conventional Commits.
 Example:
 
 ```text
-build(backend): initialize Spring Boot application
+feat(weather): [M3] add weather forecast provider interface
 ```
 
 ## Pull Request Description
@@ -1039,46 +1049,50 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 2 — Frontend Foundation
+Milestone 3 — Weather Integration
 ```
 
-Status: Implementation complete. Frontend GitHub Actions verification is
-pending before the milestone is closed.
+Status: Implementation complete. Local backend checks pass; the backend GitHub
+Actions workflow must pass before the milestone is closed.
 
 ## Milestone Goal
 
-The Node.js 22 and Next.js frontend foundation should lint, type-check, test,
-and build locally and in CI.
+The backend should retrieve hourly weather forecasts through a
+provider-independent domain contract and translate provider data and failures
+into StellaAtlas models and errors.
 
 ## Current Scope
 
 Allowed work:
 
-- Next.js App Router and TypeScript strict mode;
-- Tailwind CSS and a mobile-first base layout;
-- loading, empty, not-found, and error state foundations;
-- frontend unit tests and static checks;
-- frontend GitHub Actions verification.
+- weather provider interface and domain models;
+- one weather provider adapter selected with a documented decision;
+- hourly forecast response mapping;
+- type-safe provider configuration and connection/read timeouts;
+- provider error translation and missing-data handling;
+- bounded caching and retry behavior when justified and documented;
+- unit and focused integration tests for weather mapping and failures.
 
 Out of scope until explicitly started:
 
-- weather provider integration;
 - astronomy calculations;
 - Observation Score implementation;
+- public provider-oriented weather endpoints;
 - authentication;
 - observation records;
 - production deployment.
 
-## Milestone 2 Completion Criteria
+## Milestone 3 Completion Criteria
 
-- Node.js 22 and Next.js application configured;
-- TypeScript strict mode and Tailwind CSS enabled;
-- mobile-first base layout implemented;
-- loading, not-found, and error states implemented;
-- frontend unit tests pass;
-- lint, type-check, test, and production build pass;
-- frontend checks run in GitHub Actions;
-- local frontend commands are documented.
+- application and domain layers depend on a provider-independent weather port;
+- hourly forecasts map temperature, cloud cover, precipitation probability,
+  humidity, visibility, wind speed, and forecast time with explicit units;
+- the selected provider and important integration tradeoffs are documented;
+- external calls have configurable connection and response timeouts;
+- provider failures and invalid or missing data map to project-defined errors;
+- caching and retry behavior are bounded and covered by tests when implemented;
+- backend tests and checks pass locally and in GitHub Actions;
+- configuration and local verification steps are documented.
 
 ---
 

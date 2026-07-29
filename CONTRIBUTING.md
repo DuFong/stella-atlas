@@ -14,8 +14,9 @@
 
 ## Branches
 
-`main`에 직접 커밋하지 않습니다. 다음 접두사 중 하나를 사용하고 소문자와
-하이픈으로 작업 내용을 표현합니다.
+`main`에 직접 커밋하지 않습니다. 다음 접두사 중 하나를 사용하고, 접두사 바로
+뒤에 현재 마일스톤을 소문자 `m<number>`로 표시한 다음 소문자와 하이픈으로
+작업 내용을 표현합니다.
 
 ```text
 feature/
@@ -31,10 +32,19 @@ chore/
 예:
 
 ```text
-build/backend-initialization
-docs/clarify-local-setup
-ci/add-foundation-checks
+feature/m3-weather-provider
+docs/m3-define-weather-contract
+ci/m3-add-weather-checks
 ```
+
+형식:
+
+```text
+<prefix>/m<milestone-number>-<task-description>
+```
+
+여러 마일스톤에 걸친 저장소 유지보수 작업도 별도 합의가 없다면 현재 활성
+마일스톤을 사용합니다.
 
 ## Changes
 
@@ -51,15 +61,16 @@ ci/add-foundation-checks
 Conventional Commits 형식을 사용합니다.
 
 ```text
-<type>(<optional-scope>): <description>
+<type>(<optional-scope>): [M<milestone-number>] <description>
 ```
 
-설명은 영어 명령형 소문자로 작성하고 마침표를 붙이지 않습니다.
+마일스톤 표시는 대문자 `[M<number>]`로 작성합니다. 그 뒤 설명은 영어 명령형
+소문자로 작성하고 마침표를 붙이지 않습니다.
 
 ```text
-build(backend): initialize Spring Boot application
-docs: clarify local development setup
-ci: validate foundation configuration
+feat(weather): [M3] add weather forecast provider interface
+docs: [M3] define weather integration scope
+ci: [M3] add weather verification workflow
 ```
 
 허용하는 type은 `feat`, `fix`, `docs`, `style`, `refactor`, `test`, `build`,
@@ -81,8 +92,8 @@ docker compose config --quiet
 
 ## Pull Requests
 
-Pull Request 제목은 커밋과 같은 형식을 사용합니다. 본문에는 다음 내용을
-포함합니다.
+Pull Request 제목은 커밋과 같은 형식으로 마일스톤 표시를 포함합니다. 본문에는
+다음 내용을 포함합니다.
 
 - 변경 목적과 주요 구현
 - 영향받는 모듈

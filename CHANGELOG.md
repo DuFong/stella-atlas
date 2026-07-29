@@ -11,11 +11,16 @@
 - PostgreSQL, Flyway, Actuator, validation error handling, and backend CI.
 - Node.js 22 and Next.js 16 frontend foundation.
 - Mobile-first base UI, route states, frontend tests, and frontend CI.
+- Provider-independent weather domain contracts and hourly forecast models.
+- Open-Meteo weather adapter with configurable timeouts and error translation.
+- Bounded Caffeine caching for weather forecasts.
 
 ### Changed
 
 - Aligned repository guidance and local setup with `AGENTS.md`.
 - Unified the planned public API inventory and error response contract.
+- Closed Milestone 2 and activated Milestone 3 weather integration.
+- Added milestone identifiers to branch, commit, and pull request conventions.
 
 ## v0.1.0
 

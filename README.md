@@ -5,9 +5,9 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-현재 저장소는 **Milestone 2 — Frontend Foundation** 단계입니다. Spring Boot
-백엔드와 Next.js 프런트엔드 기반은 구현되었으며 제품 기능은 아직 구현하지
-않았습니다.
+현재 저장소는 **Milestone 3 — Weather Integration** 단계입니다. Spring Boot
+백엔드와 Next.js 프런트엔드 기반을 완료했으며, 공급자 독립적인 날씨 계약과
+Open-Meteo 시간대별 예보 연동을 구현했습니다.
 
 ## Technology
 
@@ -73,6 +73,20 @@ cd backend
 애플리케이션 상태는 `GET http://localhost:8080/actuator/health`에서 확인할 수
 있습니다. PostgreSQL 연결 정보는 루트 `.env.example`과
 `backend/src/main/resources/application.yml`을 기준으로 합니다.
+
+Milestone 3의 날씨 연동은 기본적으로 Open-Meteo의 비상업용 공개 API를
+사용합니다. base URL, 타임아웃과 캐시는 다음 환경변수로 조정할 수 있습니다.
+
+```text
+WEATHER_API_BASE_URL
+WEATHER_API_CONNECT_TIMEOUT
+WEATHER_API_READ_TIMEOUT
+WEATHER_CACHE_TTL
+WEATHER_CACHE_MAXIMUM_SIZE
+```
+
+공개 API는 개발·평가 용도이며 상용 배포 전에는 Open-Meteo 상용 endpoint와
+API key 지원 또는 self-hosting을 결정하고 데이터 출처 표기를 적용해야 합니다.
 
 프런트엔드를 실행하고 검증합니다.
 
