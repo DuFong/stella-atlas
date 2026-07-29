@@ -214,12 +214,50 @@ input {
   align-items: center;
   justify-content: center;
   gap: 9px;
-  border: 0;
   border-radius: 13px;
-  background: var(--lime-300);
-  color: var(--night-950);
   cursor: pointer;
   font-weight: 780;
+}
+
+.observation-form .location-button {
+  border: 1px solid rgb(145 201 255 / 24%);
+  background: rgb(145 201 255 / 9%);
+  color: var(--sky-300);
+}
+
+.observation-form .location-button:hover {
+  background: rgb(145 201 255 / 15%);
+}
+
+.observation-form .location-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.observation-form .submit-button {
+  border: 0;
+  background: var(--lime-300);
+  color: var(--night-950);
+}
+
+.observation-form button:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 35%);
+  outline-offset: 2px;
+}
+
+.location-status {
+  margin: -2px 2px 0;
+  color: rgb(255 255 255 / 58%);
+  font-size: 0.7rem;
+  line-height: 1.5;
+}
+
+.location-status.success {
+  color: var(--lime-300);
+}
+
+.location-status.error {
+  color: var(--coral-300);
 }
 
 .form-hint {
