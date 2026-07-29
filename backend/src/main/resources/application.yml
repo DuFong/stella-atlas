@@ -35,3 +35,13 @@ server:
     include-message: never
     include-stacktrace: never
     include-binding-errors: never
+
+stellaatlas:
+  weather:
+    open-meteo:
+      base-url: ${WEATHER_API_BASE_URL:https://api.open-meteo.com}
+      connect-timeout: ${WEATHER_API_CONNECT_TIMEOUT:2s}
+      read-timeout: ${WEATHER_API_READ_TIMEOUT:5s}
+    cache:
+      ttl: ${WEATHER_CACHE_TTL:15m}
+      maximum-size: ${WEATHER_CACHE_MAXIMUM_SIZE:1000}

@@ -1052,8 +1052,8 @@ Notes
 Milestone 3 — Weather Integration
 ```
 
-Status: Active. Milestone 2 was merged to `main` and passed the frontend
-GitHub Actions workflow.
+Status: Implementation complete. Local backend checks pass; the backend GitHub
+Actions workflow must pass before the milestone is closed.
 
 ## Milestone Goal
 

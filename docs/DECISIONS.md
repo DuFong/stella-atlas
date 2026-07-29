@@ -279,3 +279,46 @@ Milestone 2에는 재현 가능한 Node.js와 Next.js 버전, 테스트 및 정�
 - 기존 Conventional Commit type과 optional scope를 유지하므로 자동화 도구와의
   호환성을 보존합니다.
 - 마일스톤 전환 시 활성 마일스톤 문서와 새 작업 식별자를 함께 갱신해야 합니다.
+
+---
+
+## ADR-013 — Open-Meteo as the Initial Weather Provider
+
+- Status: Accepted
+- Date: 2026-07-29
+
+### Context
+
+Milestone 3에는 온도, 구름량, 강수 확률, 습도, 가시거리와 풍속을 시간대별로
+제공하는 첫 날씨 공급자가 필요합니다. 공급자 모델이 domain과 application
+계층에 노출되지 않아야 하고, 날짜·타임존·단위를 명시적으로 처리해야 합니다.
+
+### Decision
+
+- 첫 날씨 공급자로 Open-Meteo Forecast API를 사용합니다.
+- `WeatherProvider`를 domain port로 두고 Open-Meteo DTO와 HTTP 처리는
+  infrastructure Adapter에 격리합니다.
+- 공급자에는 섭씨, m/s, UNIX epoch seconds와 좌표 기반 자동 timezone을
+  명시적으로 요청합니다.
+- Spring `RestClient`와 설정 가능한 연결·응답 타임아웃을 사용합니다.
+- 동일한 `WeatherForecastQuery` 결과는 제한된 TTL과 최대 크기를 갖는 Caffeine
+  인메모리 캐시에 보관합니다.
+- 공급자 연결 실패, 5xx와 호출 제한은 `WEATHER_PROVIDER_UNAVAILABLE`로,
+  거부되거나 유효하지 않은 응답은 `EXTERNAL_PROVIDER_ERROR`로 변환합니다.
+
+### Reasons
+
+- 필수 시간대별 필드를 하나의 API에서 제공합니다.
+- 전 세계 좌표를 지원하고 위치에 적합한 기상 모델을 자동 선택합니다.
+- API key 없이 개발과 비상업적 평가를 시작할 수 있습니다.
+- 상용 endpoint와 self-hosted 서버가 동일한 API 계약을 제공해 Adapter를
+  유지한 채 운영 방식을 변경할 수 있습니다.
+
+### Consequences
+
+- 무료 endpoint는 비상업적 개발·평가에만 사용하고 호출 제한을 지켜야 합니다.
+- 상용 배포 전 유료 endpoint와 API key 또는 self-hosting 중 하나를 결정해야
+  합니다.
+- Open-Meteo와 원 데이터 공급자에 필요한 출처 표기를 사용자 화면에 추가해야
+  합니다.
+- 무료 서비스는 가용성 보장이 없으므로 타임아웃, 오류 변환과 캐시를 유지합니다.

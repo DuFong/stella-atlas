@@ -267,13 +267,19 @@ recommended
 
 ```text
 WeatherProvider
-  └── OpenMeteoWeatherAdapter
+  └── OpenMeteoWeatherAdapter (Milestone 3)
 
 AstronomyProvider
   └── AstronomyApiAdapter
 ```
 
 내부 애플리케이션은 특정 공급자의 DTO를 알지 못해야 합니다.
+
+Open-Meteo Adapter는 공급자 응답을 `WeatherForecast`와
+`HourlyWeatherCondition`으로 변환합니다. 공급자 시각은 UNIX epoch seconds로
+요청해 `Instant`로 보존하고, 응답의 IANA timezone은 별도 `ZoneId`로 유지합니다.
+온도는 섭씨, 바람은 m/s, 가시거리는 m로 명시해 단위 변환을 Adapter 경계에서
+고정합니다.
 
 ### Required Protections
 
@@ -291,7 +297,8 @@ AstronomyProvider
 
 날씨와 천문 데이터는 동일 좌표와 시간 범위에서 반복 조회될 가능성이 높습니다.
 
-초기에는 Caffeine 같은 인메모리 캐시를 고려합니다.
+Milestone 3에서는 Caffeine 인메모리 캐시를 사용합니다. 캐시 TTL과 최대 항목
+수는 환경별 설정으로 제한하며, 동일한 `WeatherForecastQuery`만 재사용합니다.
 
 ### Example Cache Key
 
