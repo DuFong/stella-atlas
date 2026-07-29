@@ -50,13 +50,18 @@ StellaAtlas 날씨 모델로 변환합니다.
 - 시간대별 예보 변환
 - 타임아웃, 오류 매핑과 캐싱
 
-상태: 구현 완료, GitHub Actions 검증 대기
+상태: 완료
 
 ## Milestone 4 — Astronomy Engine
+
+목표: 위치와 로컬 날짜를 기준으로 관측 판단에 필요한 태양·달 정보를 명시적인
+타임존과 함께 안정적으로 계산합니다.
 
 - 일몰과 박명
 - 월출, 월몰, 위상과 조도
 - 위치 기반 타임존 처리
+
+상태: 구현 완료, GitHub Actions 검증 대기
 
 ## Milestone 5 — Observation Score
 

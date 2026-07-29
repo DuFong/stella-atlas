@@ -322,3 +322,53 @@ Milestone 3에는 온도, 구름량, 강수 확률, 습도, 가시거리와 풍�
 - Open-Meteo와 원 데이터 공급자에 필요한 출처 표기를 사용자 화면에 추가해야
   합니다.
 - 무료 서비스는 가용성 보장이 없으므로 타임아웃, 오류 변환과 캐시를 유지합니다.
+
+---
+
+## ADR-014 — Offline Astronomy Calculation and Coordinate Timezones
+
+- Status: Accepted
+- Date: 2026-07-29
+
+### Context
+
+Milestone 4에는 좌표와 로컬 날짜를 기준으로 일몰, 세 종류의 박명, 월출·월몰,
+달의 위상과 조도를 결정적으로 계산하는 기능이 필요합니다. 서버 기본 시간대나
+공급자 API의 가용성에 의존해서는 안 되며, 극야·백야와 하루 안에 이벤트가 없는
+경우를 명시적으로 표현해야 합니다.
+
+### Decision
+
+- 천문 계산은 `org.shredzone.commons:commons-suncalc:3.11`을 사용합니다.
+- 좌표 기반 IANA 시간대 해석은 `net.iakovlev:timeshape:2026b.29`를 사용합니다.
+- 두 라이브러리는 infrastructure Adapter에 격리하고 application과 domain은
+  프로젝트가 정의한 `AstronomyCalculator`와 `TimeZoneResolver`만 의존합니다.
+- 입력 날짜는 해석된 `ZoneId`의 실제 로컬 하루로 변환합니다. DST 전환일의
+  23시간 또는 25시간 구간을 그대로 사용하며 계산 결과는 `Instant`로 보존합니다.
+- 좌표가 둘 이상의 시간대 경계에 포함되면 Zone ID의 사전순 첫 항목을 선택해
+  동일 입력의 결과를 결정적으로 유지합니다.
+- 일몰이나 박명이 발생하지 않으면 `ALWAYS_ABOVE` 또는 `ALWAYS_BELOW`로
+  표현하고 시간을 비워 둡니다. 월출·월몰이 로컬 하루에 없으면 해당 값을
+  `Optional.empty()`로 보존합니다.
+- 달의 위상과 조도는 관측일 로컬 정오의 위치 기반 값으로 대표합니다. 위상은
+  `0.0`의 삭에서 `0.5`의 보름을 지나 다음 삭 직전 `1.0`으로 진행하는 비율이고,
+  조도는 `0.0`에서 `1.0` 사이의 밝은 면 비율입니다.
+
+### Reasons
+
+- Commons SunCalc는 Java Time API를 직접 사용하며 필요한 태양·달 계산을 외부
+  네트워크 없이 제공합니다.
+- 약 1분 수준의 정확도는 관측 가능 여부와 추천 시간대를 판단하는 MVP 목적에
+  충분합니다.
+- TimeShape는 OpenStreetMap 기반 전 세계 시간대 경계를 애플리케이션 내부에서
+  조회하며, 초기화 비용이 있으므로 Spring singleton으로 한 번만 생성합니다.
+
+### Consequences
+
+- 계산 결과는 정밀 천문 관측, 항법 또는 법적 증빙 용도로 사용하지 않습니다.
+- 대기 굴절과 실제 지형 때문에 관측되는 일몰은 계산값과 다를 수 있습니다.
+- 시간대 경계가 겹치는 위치의 사전순 선택은 결정적이지만 사용자의 행정구역
+  의도와 다를 수 있어, 장소 검색 기능이 도입되면 명시적인 시간대 선택을
+  우선하도록 재검토합니다.
+- Commons SunCalc 코드는 Apache License 2.0, TimeShape 코드는 MIT License,
+  포함된 시간대 경계 데이터는 ODbL 조건을 따릅니다.

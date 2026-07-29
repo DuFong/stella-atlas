@@ -1049,50 +1049,54 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 3 — Weather Integration
+Milestone 4 — Astronomy Engine
 ```
 
-Status: Implementation complete. Local backend checks pass; the backend GitHub
-Actions workflow must pass before the milestone is closed.
+Status: Implementation complete. Backend GitHub Actions verification is pending
+before the milestone is closed.
 
 ## Milestone Goal
 
-The backend should retrieve hourly weather forecasts through a
-provider-independent domain contract and translate provider data and failures
-into StellaAtlas models and errors.
+The backend should derive the solar and lunar information required for
+observation decisions from a coordinate and local date while preserving
+explicit timezone semantics and well-defined edge cases.
 
 ## Current Scope
 
 Allowed work:
 
-- weather provider interface and domain models;
-- one weather provider adapter selected with a documented decision;
-- hourly forecast response mapping;
-- type-safe provider configuration and connection/read timeouts;
-- provider error translation and missing-data handling;
-- bounded caching and retry behavior when justified and documented;
-- unit and focused integration tests for weather mapping and failures.
+- astronomy provider or calculator interfaces and domain models;
+- selection and documentation of the astronomy calculation strategy;
+- sunset and civil, nautical, and astronomical twilight;
+- moonrise, moonset, lunar phase, and illumination;
+- coordinate-based timezone resolution needed by astronomy calculations;
+- explicit `Instant`, `LocalDate`, and `ZoneId` conversion boundaries;
+- polar day, polar night, absent moonrise or moonset, and date-boundary handling;
+- deterministic unit and focused integration tests for astronomy results.
 
 Out of scope until explicitly started:
 
-- astronomy calculations;
 - Observation Score implementation;
+- final `GET /api/v1/observations` response composition;
 - public provider-oriented weather endpoints;
 - authentication;
 - observation records;
 - production deployment.
 
-## Milestone 3 Completion Criteria
+## Milestone 4 Completion Criteria
 
-- application and domain layers depend on a provider-independent weather port;
-- hourly forecasts map temperature, cloud cover, precipitation probability,
-  humidity, visibility, wind speed, and forecast time with explicit units;
-- the selected provider and important integration tradeoffs are documented;
-- external calls have configurable connection and response timeouts;
-- provider failures and invalid or missing data map to project-defined errors;
-- caching and retry behavior are bounded and covered by tests when implemented;
+- application and domain layers do not depend on vendor-specific astronomy
+  models or framework DTOs;
+- sunset and all three twilight boundaries are produced for supported inputs;
+- moonrise, moonset, phase, and illumination are produced when they exist;
+- timezone resolution and UTC/local conversion behavior are explicit;
+- polar and missing-event outcomes are represented without fabricated times;
+- the selected calculation library or provider, accuracy assumptions,
+  licensing, and important tradeoffs are documented;
+- deterministic boundary and known-reference tests cover solar, lunar,
+  timezone, polar, and date-transition behavior;
 - backend tests and checks pass locally and in GitHub Actions;
-- configuration and local verification steps are documented.
+- configuration and local verification steps are documented when required.
 
 ---
 

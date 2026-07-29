@@ -14,6 +14,9 @@
 - Provider-independent weather domain contracts and hourly forecast models.
 - Open-Meteo weather adapter with configurable timeouts and error translation.
 - Bounded Caffeine caching for weather forecasts.
+- Provider-independent astronomy domain contracts and application orchestration.
+- Offline sunset, twilight, moonrise, moonset, phase, and illumination calculation.
+- Coordinate-based IANA timezone resolution with explicit polar and missing-event states.
 
 ### Changed
 
@@ -21,6 +24,7 @@
 - Unified the planned public API inventory and error response contract.
 - Closed Milestone 2 and activated Milestone 3 weather integration.
 - Added milestone identifiers to branch, commit, and pull request conventions.
+- Closed Milestone 3 and activated Milestone 4 astronomy engine work.
 
 ## v0.1.0
 
