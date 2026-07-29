@@ -14,6 +14,9 @@
 - Provider-independent weather domain contracts and hourly forecast models.
 - Open-Meteo weather adapter with configurable timeouts and error translation.
 - Bounded Caffeine caching for weather forecasts.
+- Provider-independent astronomy domain contracts and application orchestration.
+- Offline sunset, twilight, moonrise, moonset, phase, and illumination calculation.
+- Coordinate-based IANA timezone resolution with explicit polar and missing-event states.
 
 ### Changed
 

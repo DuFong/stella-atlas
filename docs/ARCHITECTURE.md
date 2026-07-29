@@ -113,12 +113,18 @@ Spring Boot
 
 주요 책임:
 
+- 위치와 로컬 날짜를 명시적인 타임존의 계산 구간으로 변환
 - 일몰
 - 박명
 - 월출과 월몰
 - 달의 위상
 - 달 밝기
 - 향후 천체 위치
+
+`AstronomyCalculator`는 domain port이며 Commons SunCalc 구현은 infrastructure에
+격리합니다. 계산 결과의 절대 시각은 `Instant`로 보존하고, 극야·백야 또는
+하루 안에 이벤트가 없는 경우 시간을 만들어내지 않고 상태와 `Optional`로
+표현합니다.
 
 ### location
 
@@ -269,8 +275,11 @@ recommended
 WeatherProvider
   └── OpenMeteoWeatherAdapter (Milestone 3)
 
-AstronomyProvider
-  └── AstronomyApiAdapter
+AstronomyCalculator
+  └── CommonsSuncalcAstronomyCalculator (Milestone 4)
+
+TimeZoneResolver
+  └── TimeshapeTimeZoneResolver (Milestone 4)
 ```
 
 내부 애플리케이션은 특정 공급자의 DTO를 알지 못해야 합니다.
@@ -278,6 +287,10 @@ AstronomyProvider
 Open-Meteo Adapter는 공급자 응답을 `WeatherForecast`와
 `HourlyWeatherCondition`으로 변환합니다. 공급자 시각은 UNIX epoch seconds로
 요청해 `Instant`로 보존하고, 응답의 IANA timezone은 별도 `ZoneId`로 유지합니다.
+
+천문 계산은 외부 네트워크 호출 없이 Commons SunCalc로 수행합니다. location
+모듈은 TimeShape의 내장 경계 데이터로 좌표를 IANA `ZoneId`로 해석하고,
+astronomy 애플리케이션은 공급자 모델이 아닌 domain port만 의존합니다.
 온도는 섭씨, 바람은 m/s, 가시거리는 m로 명시해 단위 변환을 Adapter 경계에서
 고정합니다.
 

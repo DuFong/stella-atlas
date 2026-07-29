@@ -1052,8 +1052,8 @@ Notes
 Milestone 4 — Astronomy Engine
 ```
 
-Status: Active. Milestone 3 was merged to `main` and passed the Foundation and
-Backend GitHub Actions workflows.
+Status: Implementation complete. Backend GitHub Actions verification is pending
+before the milestone is closed.
 
 ## Milestone Goal
 

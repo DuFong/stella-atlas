@@ -61,7 +61,7 @@ StellaAtlas 날씨 모델로 변환합니다.
 - 월출, 월몰, 위상과 조도
 - 위치 기반 타임존 처리
 
-상태: 진행 중
+상태: 구현 완료, GitHub Actions 검증 대기
 
 ## Milestone 5 — Observation Score
 

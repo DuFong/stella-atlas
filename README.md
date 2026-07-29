@@ -7,7 +7,8 @@ StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보�
 
 현재 저장소는 **Milestone 4 — Astronomy Engine** 단계입니다. Spring Boot와
 Next.js 기반 및 Open-Meteo 날씨 연동을 완료했으며, 위치와 날짜에 따른 일몰,
-박명, 달의 위상·조도와 월출·월몰 계산 기반을 구현할 예정입니다.
+박명, 달의 위상·조도와 월출·월몰 계산 기반을 구현했습니다. Milestone 종료 전
+GitHub Actions 검증이 남아 있습니다.
 
 ## Technology
 
@@ -88,6 +89,12 @@ WEATHER_CACHE_MAXIMUM_SIZE
 공개 API는 개발·평가 용도이며 상용 배포 전에는 Open-Meteo 상용 endpoint와
 API key 지원 또는 self-hosting을 결정하고 데이터 출처 표기를 적용해야 합니다.
 
+Milestone 4의 천문 정보는 외부 API 없이 Commons SunCalc로 계산하며, 좌표의
+IANA 시간대는 TimeShape의 내장 경계 데이터로 해석합니다. 별도 API key나
+환경변수는 필요하지 않습니다. 정확도와 라이선스 고려사항은
+[Architecture Decisions](docs/DECISIONS.md)와
+[Third-Party Notices](docs/THIRD_PARTY_NOTICES.md)를 참고합니다.
+
 프런트엔드를 실행하고 검증합니다.
 
 ```bash
@@ -113,6 +120,7 @@ npm run build
 - [API Guidelines](docs/API.md)
 - [Observation Score](docs/OBSERVATION_SCORE.md)
 - [Architecture Decisions](docs/DECISIONS.md)
+- [Third-Party Notices](docs/THIRD_PARTY_NOTICES.md)
 - [Contributing](CONTRIBUTING.md)
 
 ## Contribution
