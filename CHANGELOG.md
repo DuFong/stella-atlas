@@ -17,6 +17,9 @@
 - Provider-independent astronomy domain contracts and application orchestration.
 - Offline sunset, twilight, moonrise, moonset, phase, and illumination calculation.
 - Coordinate-based IANA timezone resolution with explicit polar and missing-event states.
+- Explainable hourly observation scoring rules and grade boundaries.
+- Cross-midnight best observation window selection.
+- Public observation forecast API combining weather, astronomy, and scores.
 
 ### Changed
 

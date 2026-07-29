@@ -7,7 +7,8 @@ StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보�
 
 현재 저장소는 **Milestone 5 — Observation Score** 단계입니다. 날씨와 천문
 계산 기반을 완료했으며, 시간대별 조건을 설명 가능한 점수·등급·이유로 평가하고
-최적 관측 시간을 선택하는 기능을 구현합니다.
+최적 관측 시간을 선택하는 기능과 통합 관측 API를 구현했습니다. Milestone 종료
+전 GitHub Actions 검증이 남아 있습니다.
 
 ## Technology
 
@@ -73,6 +74,15 @@ cd backend
 애플리케이션 상태는 `GET http://localhost:8080/actuator/health`에서 확인할 수
 있습니다. PostgreSQL 연결 정보는 루트 `.env.example`과
 `backend/src/main/resources/application.yml`을 기준으로 합니다.
+
+통합 관측 결과는 다음 API에서 확인할 수 있습니다.
+
+```text
+GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
+```
+
+요청 날짜의 로컬 정오부터 다음 날 정오까지 날씨와 천문 조건을 정렬해 시간대별
+점수와 최적 관측 구간을 반환합니다.
 
 Milestone 3의 날씨 연동은 기본적으로 Open-Meteo의 비상업용 공개 API를
 사용합니다. base URL, 타임아웃과 캐시는 다음 환경변수로 조정할 수 있습니다.

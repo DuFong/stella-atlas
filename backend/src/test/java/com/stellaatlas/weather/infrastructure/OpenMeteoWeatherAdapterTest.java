@@ -50,7 +50,7 @@ class OpenMeteoWeatherAdapterTest {
                 .andExpect(queryParam("latitude", "37.5665"))
                 .andExpect(queryParam("longitude", "126.978"))
                 .andExpect(queryParam("start_date", "2026-08-01"))
-                .andExpect(queryParam("end_date", "2026-08-01"))
+                .andExpect(queryParam("end_date", "2026-08-02"))
                 .andExpect(queryParam("wind_speed_unit", "ms"))
                 .andExpect(queryParam("timeformat", "unixtime"))
                 .andExpect(queryParam("timezone", "auto"))

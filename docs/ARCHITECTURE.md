@@ -95,6 +95,11 @@ Spring Boot
 - 결과 이유 생성
 - 날씨와 천문 데이터 조합
 
+`ObservationForecastService`는 요청 날짜의 로컬 정오부터 다음 날 정오까지의
+날씨를 두 날짜의 천문 상태와 정렬합니다. 각 규칙은 하나의 요인만 평가하고
+`DefaultObservationScorePolicy`가 감점을 합산합니다. 추천 가능한 연속 시간대는
+`BestObservationWindowSelector`가 평균 점수, 길이, 시작 시각 순으로 선택합니다.
+
 ### weather
 
 날씨 공급자와 통신합니다.
@@ -215,12 +220,17 @@ windSpeed
 ### AstronomyCondition
 
 ```text
+sunrise
 sunset
+civilTwilightStart
 civilTwilightEnd
+nauticalTwilightStart
 nauticalTwilightEnd
+astronomicalTwilightStart
 astronomicalTwilightEnd
 moonrise
 moonset
+moonPhase
 moonIllumination
 ```
 
@@ -258,6 +268,7 @@ recommended
 ### Rules
 
 - API 입력 날짜는 조회 위치의 로컬 날짜로 해석
+- 하나의 관측일은 해당 로컬 날짜 정오부터 다음 날 정오 직전까지로 정의
 - 외부 API 시간은 원본 타임존을 확인
 - 내부 저장이 필요한 절대 시각은 `Instant`
 - 사용자 표현은 `ZonedDateTime`

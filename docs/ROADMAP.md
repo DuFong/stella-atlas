@@ -73,7 +73,7 @@ StellaAtlas 날씨 모델로 변환합니다.
 - 최적 관측 시간 선택
 - 규칙 및 경계 테스트
 
-상태: 진행 중
+상태: 구현 완료, GitHub Actions 검증 대기
 
 ## Milestone 6 — User Features
 

@@ -50,7 +50,7 @@ class OpenMeteoWeatherAdapter implements WeatherProvider {
                             .queryParam("latitude", query.latitude())
                             .queryParam("longitude", query.longitude())
                             .queryParam("start_date", query.date())
-                            .queryParam("end_date", query.date())
+                            .queryParam("end_date", query.date().plusDays(1))
                             .queryParam("hourly", HOURLY_VARIABLES)
                             .queryParam("temperature_unit", "celsius")
                             .queryParam("wind_speed_unit", "ms")

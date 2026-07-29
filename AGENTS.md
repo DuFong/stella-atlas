@@ -1052,7 +1052,8 @@ Notes
 Milestone 5 — Observation Score
 ```
 
-Status: Active. Milestone 4 was merged to `main`.
+Status: Implementation complete. Backend GitHub Actions verification is pending
+before the milestone is closed.
 
 ## Milestone Goal
 
