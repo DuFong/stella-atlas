@@ -109,6 +109,7 @@ IANA 시간대는 TimeShape의 내장 경계 데이터로 해석합니다. 별�
 ```bash
 nvm use
 cd frontend
+cp .env.example .env.local
 npm ci
 npm run dev
 npm run lint
@@ -118,6 +119,9 @@ npm run build
 ```
 
 프런트엔드 개발 서버는 기본적으로 `http://localhost:3000`에서 실행됩니다.
+`API_BASE_URL`은 Next.js 서버가 호출할 백엔드 주소이며 기본값은
+`http://localhost:8080`입니다. 브라우저가 백엔드를 직접 호출하지 않으므로
+별도 CORS 설정은 필요하지 않습니다.
 
 ## Documentation
 

@@ -81,6 +81,20 @@ Spring Boot
 
 ---
 
+## 4.1 Frontend Integration
+
+Next.js App Router 페이지는 좌표와 날짜를 URL query string으로 받아 Server
+Component에서 Spring Boot의 `GET /api/v1/observations`를 호출합니다. API 접근은
+`features/observation/api`에 중앙화하며 `API_BASE_URL`은 서버 런타임에서만
+읽습니다.
+
+브라우저가 백엔드를 직접 호출하지 않으므로 현재 조회 흐름에는 CORS가 필요하지
+않습니다. 예상 가능한 공급자·검증 오류는 API 오류 계약을 사용자용 상태 카드로
+변환하고, 예상하지 못한 렌더링 오류는 App Router의 `error.tsx` 경계가
+처리합니다.
+
+---
+
 ## 5. Backend Modules
 
 ### observation
@@ -248,15 +262,16 @@ recommended
 ## 8. Data Flow
 
 ```text
-1. Client sends coordinate and date
-2. Backend validates input
-3. Location module resolves timezone
-4. Weather module fetches hourly forecast
-5. Astronomy module calculates or fetches astronomy data
-6. Observation module aligns data by local time
-7. Score policy evaluates each time slot
-8. Best window selector chooses recommendation
-9. API maps domain result to response DTO
+1. Browser submits coordinate and date as Next.js URL search parameters
+2. Next.js Server Component requests the observation API
+3. Backend validates input
+4. Location module resolves timezone
+5. Weather module fetches hourly forecast
+6. Astronomy module calculates astronomy data
+7. Observation module aligns data by local time
+8. Score policy evaluates each time slot
+9. Best window selector chooses recommendation
+10. API maps the domain result and Next.js renders the user-facing response
 ```
 
 ---

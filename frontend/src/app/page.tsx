@@ -1,4 +1,15 @@
-import { ObservationPreview } from "@/features/observation/components/observation-preview";
+import { getObservation } from "@/features/observation/api/get-observation";
+import { ObservationDetails } from "@/features/observation/components/observation-details";
+import { ObservationSearchForm } from "@/features/observation/components/observation-search-form";
+import {
+  ObservationErrorCard,
+  ObservationPromptCard,
+} from "@/features/observation/components/observation-state-card";
+import { ObservationSummaryCard } from "@/features/observation/components/observation-summary-card";
+import type {
+  ObservationApiResult,
+  ObservationQuery,
+} from "@/features/observation/types/observation";
 import Link from "next/link";
 
 const steps = [
@@ -19,7 +30,33 @@ const steps = [
   },
 ] as const;
 
-export default function Home() {
+type HomeSearchParams = Promise<{
+  latitude?: string | string[];
+  longitude?: string | string[];
+  date?: string | string[];
+}>;
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: HomeSearchParams;
+}) {
+  const params = await searchParams;
+  const query = toQuery(params);
+  const result = isCompleteQuery(query)
+    ? await getObservation(query)
+    : undefined;
+
+  return <HomeContent query={query} result={result} />;
+}
+
+export function HomeContent({
+  query,
+  result,
+}: {
+  query: ObservationQuery;
+  result?: ObservationApiResult;
+}) {
   return (
     <main>
       <section className="hero-shell">
@@ -31,7 +68,7 @@ export default function Home() {
             </span>
             <span>StellaAtlas</span>
           </Link>
-          <span className="milestone-badge">Milestone 2</span>
+          <span className="milestone-badge">Milestone 5</span>
         </nav>
 
         <div className="hero-grid">
@@ -47,15 +84,20 @@ export default function Home() {
               바꿔드립니다.
             </p>
 
-            <div className="coming-soon" role="note">
-              <span className="pulse-dot" aria-hidden="true" />
-              관측 조건 조회 기능을 준비하고 있습니다
-            </div>
+            <ObservationSearchForm query={query} />
           </div>
 
-          <ObservationPreview />
+          {result?.ok ? (
+            <ObservationSummaryCard forecast={result.data} />
+          ) : result ? (
+            <ObservationErrorCard error={result.error} />
+          ) : (
+            <ObservationPromptCard />
+          )}
         </div>
       </section>
+
+      {result?.ok ? <ObservationDetails forecast={result.data} /> : null}
 
       <section className="process-section" aria-labelledby="process-heading">
         <div className="section-heading">
@@ -89,4 +131,24 @@ export default function Home() {
       </footer>
     </main>
   );
+}
+
+function toQuery(params: Awaited<HomeSearchParams>): ObservationQuery {
+  return {
+    latitude: firstValue(params.latitude) ?? "",
+    longitude: firstValue(params.longitude) ?? "",
+    date: firstValue(params.date) ?? currentDate(),
+  };
+}
+
+function firstValue(value: string | string[] | undefined): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function currentDate(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function isCompleteQuery(query: ObservationQuery): boolean {
+  return Boolean(query.latitude && query.longitude && query.date);
 }

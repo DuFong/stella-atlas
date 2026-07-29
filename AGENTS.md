@@ -1078,6 +1078,8 @@ Allowed work:
 - domain and application tests for rule boundaries and combined outcomes;
 - final composition of the public `GET /api/v1/observations` API when the
   domain contracts are stable.
+- server-rendered frontend integration for observation query, summary, hourly
+  conditions, loading, empty, and expected error states.
 
 Out of scope until explicitly started:
 
@@ -1101,6 +1103,9 @@ Out of scope until explicitly started:
 - required missing data does not silently produce a normal score;
 - `docs/OBSERVATION_SCORE.md`, architecture, API, and decision records match the
   implementation;
+- the frontend calls the observation API through a centralized server-side
+  client and renders query, result, loading, empty, and error states;
+- frontend lint, type-check, tests, and production build pass;
 - backend tests and checks pass locally and in GitHub Actions;
 - no new environment variable is introduced unless scoring configuration is
   intentionally externalized and documented.
