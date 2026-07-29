@@ -81,6 +81,20 @@ Spring Boot
 
 ---
 
+## 4.1 Frontend Integration
+
+Next.js App Router 페이지는 좌표와 날짜를 URL query string으로 받아 Server
+Component에서 Spring Boot의 `GET /api/v1/observations`를 호출합니다. API 접근은
+`features/observation/api`에 중앙화하며 `API_BASE_URL`은 서버 런타임에서만
+읽습니다.
+
+브라우저가 백엔드를 직접 호출하지 않으므로 현재 조회 흐름에는 CORS가 필요하지
+않습니다. 예상 가능한 공급자·검증 오류는 API 오류 계약을 사용자용 상태 카드로
+변환하고, 예상하지 못한 렌더링 오류는 App Router의 `error.tsx` 경계가
+처리합니다.
+
+---
+
 ## 5. Backend Modules
 
 ### observation
@@ -94,6 +108,11 @@ Spring Boot
 - 최적 시간 선택
 - 결과 이유 생성
 - 날씨와 천문 데이터 조합
+
+`ObservationForecastService`는 요청 날짜의 로컬 정오부터 다음 날 정오까지의
+날씨를 두 날짜의 천문 상태와 정렬합니다. 각 규칙은 하나의 요인만 평가하고
+`DefaultObservationScorePolicy`가 감점을 합산합니다. 추천 가능한 연속 시간대는
+`BestObservationWindowSelector`가 평균 점수, 길이, 시작 시각 순으로 선택합니다.
 
 ### weather
 
@@ -215,12 +234,17 @@ windSpeed
 ### AstronomyCondition
 
 ```text
+sunrise
 sunset
+civilTwilightStart
 civilTwilightEnd
+nauticalTwilightStart
 nauticalTwilightEnd
+astronomicalTwilightStart
 astronomicalTwilightEnd
 moonrise
 moonset
+moonPhase
 moonIllumination
 ```
 
@@ -238,15 +262,16 @@ recommended
 ## 8. Data Flow
 
 ```text
-1. Client sends coordinate and date
-2. Backend validates input
-3. Location module resolves timezone
-4. Weather module fetches hourly forecast
-5. Astronomy module calculates or fetches astronomy data
-6. Observation module aligns data by local time
-7. Score policy evaluates each time slot
-8. Best window selector chooses recommendation
-9. API maps domain result to response DTO
+1. Browser submits coordinate and date as Next.js URL search parameters
+2. Next.js Server Component requests the observation API
+3. Backend validates input
+4. Location module resolves timezone
+5. Weather module fetches hourly forecast
+6. Astronomy module calculates astronomy data
+7. Observation module aligns data by local time
+8. Score policy evaluates each time slot
+9. Best window selector chooses recommendation
+10. API maps the domain result and Next.js renders the user-facing response
 ```
 
 ---
@@ -258,6 +283,7 @@ recommended
 ### Rules
 
 - API 입력 날짜는 조회 위치의 로컬 날짜로 해석
+- 하나의 관측일은 해당 로컬 날짜 정오부터 다음 날 정오 직전까지로 정의
 - 외부 API 시간은 원본 타임존을 확인
 - 내부 저장이 필요한 절대 시각은 `Instant`
 - 사용자 표현은 `ZonedDateTime`

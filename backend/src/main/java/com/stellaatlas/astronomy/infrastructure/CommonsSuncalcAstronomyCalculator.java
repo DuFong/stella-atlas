@@ -26,11 +26,24 @@ public class CommonsSuncalcAstronomyCalculator implements AstronomyCalculator {
         ZonedDateTime startOfDay = query.date().atStartOfDay(timeZone);
         Duration localDay = Duration.between(startOfDay, query.date().plusDays(1).atStartOfDay(timeZone));
 
+        SunTimes visual = calculateSunTimes(query, startOfDay, localDay, SunTimes.Twilight.VISUAL);
+        SunTimes civil = calculateSunTimes(query, startOfDay, localDay, SunTimes.Twilight.CIVIL);
+        SunTimes nautical = calculateSunTimes(query, startOfDay, localDay, SunTimes.Twilight.NAUTICAL);
+        SunTimes astronomical = calculateSunTimes(
+                query,
+                startOfDay,
+                localDay,
+                SunTimes.Twilight.ASTRONOMICAL
+        );
         SolarEvents solarEvents = new SolarEvents(
-                calculateSunset(query, startOfDay, localDay, SunTimes.Twilight.VISUAL),
-                calculateSunset(query, startOfDay, localDay, SunTimes.Twilight.CIVIL),
-                calculateSunset(query, startOfDay, localDay, SunTimes.Twilight.NAUTICAL),
-                calculateSunset(query, startOfDay, localDay, SunTimes.Twilight.ASTRONOMICAL)
+                mapSunEvent(visual, visual.getRise()),
+                mapSunEvent(visual, visual.getSet()),
+                mapSunEvent(civil, civil.getRise()),
+                mapSunEvent(civil, civil.getSet()),
+                mapSunEvent(nautical, nautical.getRise()),
+                mapSunEvent(nautical, nautical.getSet()),
+                mapSunEvent(astronomical, astronomical.getRise()),
+                mapSunEvent(astronomical, astronomical.getSet())
         );
 
         MoonTimes moonTimes = MoonTimes.compute()
@@ -54,20 +67,23 @@ public class CommonsSuncalcAstronomyCalculator implements AstronomyCalculator {
         return new AstronomyConditions(timeZone, solarEvents, lunarEvents);
     }
 
-    private HorizonEvent calculateSunset(
+    private SunTimes calculateSunTimes(
             AstronomyQuery query,
             ZonedDateTime startOfDay,
             Duration localDay,
             SunTimes.Twilight twilight
     ) {
-        SunTimes times = SunTimes.compute()
+        return SunTimes.compute()
                 .on(startOfDay)
                 .at(query.latitude(), query.longitude())
                 .limit(localDay)
                 .twilight(twilight)
                 .execute();
-        if (times.getSet() != null) {
-            return HorizonEvent.occursAt(times.getSet().toInstant());
+    }
+
+    private HorizonEvent mapSunEvent(SunTimes times, ZonedDateTime eventTime) {
+        if (eventTime != null) {
+            return HorizonEvent.occursAt(eventTime.toInstant());
         }
         if (times.isAlwaysUp()) {
             return HorizonEvent.alwaysAbove();

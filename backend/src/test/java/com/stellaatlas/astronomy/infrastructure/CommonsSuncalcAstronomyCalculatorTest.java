@@ -37,6 +37,14 @@ class CommonsSuncalcAstronomyCalculatorTest {
         assertThat(events)
                 .extracting(event -> event.time().orElseThrow())
                 .isSorted();
+        assertThat(List.of(
+                conditions.solarEvents().astronomicalTwilightStart(),
+                conditions.solarEvents().nauticalTwilightStart(),
+                conditions.solarEvents().civilTwilightStart(),
+                conditions.solarEvents().sunrise()
+        )).allMatch(event -> event.state() == HorizonState.OCCURS)
+                .extracting(event -> event.time().orElseThrow())
+                .isSorted();
 
         ZonedDateTime sunset = conditions.solarEvents().sunset().time().orElseThrow().atZone(zone);
         assertThat(sunset.toLocalDate()).isEqualTo(LocalDate.of(2026, 8, 1));

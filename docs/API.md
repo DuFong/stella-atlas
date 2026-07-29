@@ -21,7 +21,7 @@
 |---|---:|---|---|
 | Implemented | 1 | `GET /actuator/health` | 애플리케이션과 의존 서비스 상태 |
 | Implemented | 1 | `GET /actuator/info` | 빌드 및 애플리케이션 정보 확장 지점 |
-| Planned core | 3~5 | `GET /api/v1/observations` | 위치와 날짜의 통합 관측 예보 |
+| Implemented | 5 | `GET /api/v1/observations` | 위치와 날짜의 통합 관측 예보 |
 | Planned support | TBD | `GET /api/v1/locations/search` | 지역명 검색과 좌표·타임존 확인 |
 | Planned user | 6 | `GET /api/v1/users/me/locations/{locationId}` | 저장한 관측 장소 조회 |
 | Planned user | 6 | `POST /api/v1/users/me/locations` | 관측 장소 저장 |
@@ -37,8 +37,7 @@
 
 ## 3. Observation Forecast API
 
-Status: Planned core API. Milestone 3의 날씨, Milestone 4의 천문 정보와
-Milestone 5의 관측 점수가 완성되면서 단계적으로 구현합니다.
+Status: Implemented in Milestone 5.
 
 ### Request
 
@@ -67,29 +66,63 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
   },
   "date": "2026-08-01",
   "summary": {
-    "score": 82,
-    "grade": "GOOD",
+    "score": 90,
+    "grade": "EXCELLENT",
     "recommended": true,
     "bestWindow": {
       "start": "2026-08-01T22:00:00+09:00",
-      "end": "2026-08-02T00:00:00+09:00"
+      "end": "2026-08-02T00:00:00+09:00",
+      "averageScore": 90
     },
-    "message": "밤 10시 이후 관측 조건이 가장 좋습니다."
+    "message": "별을 관측하기 매우 좋은 조건입니다."
   },
   "astronomy": {
-    "sunset": "2026-08-01T19:40:00+09:00",
-    "civilTwilightEnd": "2026-08-01T20:08:00+09:00",
-    "nauticalTwilightEnd": "2026-08-01T20:42:00+09:00",
-    "astronomicalTwilightEnd": "2026-08-01T21:18:00+09:00",
+    "sunrise": {
+      "time": "2026-08-01T05:35:00+09:00",
+      "state": "OCCURS"
+    },
+    "sunset": {
+      "time": "2026-08-01T19:40:00+09:00",
+      "state": "OCCURS"
+    },
+    "civilTwilightStart": {
+      "time": "2026-08-01T05:07:00+09:00",
+      "state": "OCCURS"
+    },
+    "civilTwilightEnd": {
+      "time": "2026-08-01T20:08:00+09:00",
+      "state": "OCCURS"
+    },
+    "nauticalTwilightStart": {
+      "time": "2026-08-01T04:33:00+09:00",
+      "state": "OCCURS"
+    },
+    "nauticalTwilightEnd": {
+      "time": "2026-08-01T20:42:00+09:00",
+      "state": "OCCURS"
+    },
+    "astronomicalTwilightStart": {
+      "time": "2026-08-01T03:56:00+09:00",
+      "state": "OCCURS"
+    },
+    "astronomicalTwilightEnd": {
+      "time": "2026-08-01T21:18:00+09:00",
+      "state": "OCCURS"
+    },
     "moonrise": "2026-08-01T22:31:00+09:00",
-    "moonset": "2026-08-02T09:42:00+09:00",
+    "moonset": null,
+    "lunarVisibility": "NORMAL",
+    "moonPhase": 0.62,
     "moonIllumination": 0.18
   },
   "hourly": [
     {
       "time": "2026-08-01T22:00:00+09:00",
-      "score": 84,
-      "grade": "GOOD",
+      "score": 90,
+      "grade": "EXCELLENT",
+      "recommended": true,
+      "twilightPhase": "DARK",
+      "moonAboveHorizon": false,
       "weather": {
         "temperatureCelsius": 24.1,
         "cloudCoverPercent": 12,
@@ -100,9 +133,9 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
       },
       "reasons": [
         {
-          "code": "LOW_CLOUD_COVER",
-          "impact": 8,
-          "message": "구름이 적어 관측에 유리합니다."
+          "code": "MODERATE_CLOUD_COVER",
+          "impact": -10,
+          "message": "구름이 조금 예상됩니다."
         }
       ]
     }
@@ -110,6 +143,11 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
   "generatedAt": "2026-08-01T10:02:15Z"
 }
 ```
+
+관측 시간 범위는 요청 위치의 로컬 시간으로 요청 날짜 정오부터 다음 날 정오
+직전까지입니다. `bestWindow`는 추천 가능한 연속 시간대가 없으면 `null`입니다.
+태양 이벤트가 발생하지 않는 극지방에서는 `time`이 `null`이고 `state`가
+`ALWAYS_ABOVE` 또는 `ALWAYS_BELOW`입니다.
 
 ---
 
@@ -198,7 +236,7 @@ moonIllumination: 0.18
 | 429 | RATE_LIMIT_EXCEEDED | 호출 제한 초과 |
 | 502 | EXTERNAL_PROVIDER_ERROR | 외부 공급자 오류 |
 | 503 | WEATHER_PROVIDER_UNAVAILABLE | 날씨 공급자 사용 불가 |
-| 503 | ASTRONOMY_PROVIDER_UNAVAILABLE | 천문 공급자 사용 불가 |
+| 503 | OBSERVATION_DATA_UNAVAILABLE | 점수 계산에 필요한 데이터 부족 또는 불일치 |
 | 500 | INTERNAL_ERROR | 내부 오류 |
 
 내부 예외 메시지와 스택 트레이스를 응답에 노출하지 않습니다.

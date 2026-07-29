@@ -1049,7 +1049,7 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 4 — Astronomy Engine
+Milestone 5 — Observation Score
 ```
 
 Status: Implementation complete. Backend GitHub Actions verification is pending
@@ -1057,46 +1057,58 @@ before the milestone is closed.
 
 ## Milestone Goal
 
-The backend should derive the solar and lunar information required for
-observation decisions from a coordinate and local date while preserving
-explicit timezone semantics and well-defined edge cases.
+The backend should combine hourly weather and astronomy conditions into
+deterministic, explainable observation scores and select the best observation
+window for a local date.
 
 ## Current Scope
 
 Allowed work:
 
-- astronomy provider or calculator interfaces and domain models;
-- selection and documentation of the astronomy calculation strategy;
-- sunset and civil, nautical, and astronomical twilight;
-- moonrise, moonset, lunar phase, and illumination;
-- coordinate-based timezone resolution needed by astronomy calculations;
-- explicit `Instant`, `LocalDate`, and `ZoneId` conversion boundaries;
-- polar day, polar night, absent moonrise or moonset, and date-boundary handling;
-- deterministic unit and focused integration tests for astronomy results.
+- independent scoring rules for cloud cover, precipitation probability,
+  visibility, humidity, wind, moon illumination, and twilight;
+- explicit rule weights, thresholds, grade boundaries, and recommendation
+  criteria;
+- stable reason codes, signed impacts, and user-facing messages;
+- hourly observation evaluation from project-owned weather and astronomy
+  models;
+- deterministic best observation window selection and no-recommendation
+  outcomes;
+- missing required data policy and score clamping;
+- domain and application tests for rule boundaries and combined outcomes;
+- final composition of the public `GET /api/v1/observations` API when the
+  domain contracts are stable.
+- server-rendered frontend integration for observation query, summary, hourly
+  conditions, loading, empty, and expected error states.
 
 Out of scope until explicitly started:
 
-- Observation Score implementation;
-- final `GET /api/v1/observations` response composition;
 - public provider-oriented weather endpoints;
 - authentication;
 - observation records;
 - production deployment.
 
-## Milestone 4 Completion Criteria
+## Milestone 5 Completion Criteria
 
-- application and domain layers do not depend on vendor-specific astronomy
-  models or framework DTOs;
-- sunset and all three twilight boundaries are produced for supported inputs;
-- moonrise, moonset, phase, and illumination are produced when they exist;
-- timezone resolution and UTC/local conversion behavior are explicit;
-- polar and missing-event outcomes are represented without fabricated times;
-- the selected calculation library or provider, accuracy assumptions,
-  licensing, and important tradeoffs are documented;
-- deterministic boundary and known-reference tests cover solar, lunar,
-  timezone, polar, and date-transition behavior;
+- each factor is implemented as an independently testable rule with documented
+  thresholds and impacts;
+- scores are deterministic and clamped to the `0..100` range;
+- grade and recommendation boundaries are explicit and tested;
+- each material adjustment has a stable reason code, signed impact, and
+  readable message;
+- twilight and moon effects are aligned with each hourly weather instant in the
+  resolved timezone;
+- the best contiguous observation window is selected deterministically, with
+  explicit tie-breaking and no-recommendation behavior;
+- required missing data does not silently produce a normal score;
+- `docs/OBSERVATION_SCORE.md`, architecture, API, and decision records match the
+  implementation;
+- the frontend calls the observation API through a centralized server-side
+  client and renders query, result, loading, empty, and error states;
+- frontend lint, type-check, tests, and production build pass;
 - backend tests and checks pass locally and in GitHub Actions;
-- configuration and local verification steps are documented when required.
+- no new environment variable is introduced unless scoring configuration is
+  intentionally externalized and documented.
 
 ---
 

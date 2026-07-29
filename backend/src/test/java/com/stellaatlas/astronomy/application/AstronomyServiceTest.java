@@ -34,7 +34,16 @@ class AstronomyServiceTest {
         HorizonEvent missing = HorizonEvent.alwaysAbove();
         return new AstronomyConditions(
                 timeZone,
-                new SolarEvents(missing, missing, missing, missing),
+                new SolarEvents(
+                        missing,
+                        missing,
+                        missing,
+                        missing,
+                        missing,
+                        missing,
+                        missing,
+                        missing
+                ),
                 new LunarEvents(
                         Optional.empty(),
                         Optional.empty(),

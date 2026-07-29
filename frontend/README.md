@@ -22,6 +22,16 @@ npm run build
 
 로컬 개발 서버는 기본적으로 `http://localhost:3000`에서 실행됩니다.
 
+백엔드 API 주소가 기본값 `http://localhost:8080`과 다르면 환경 파일을
+준비합니다.
+
+```bash
+cp .env.example .env.local
+```
+
+`API_BASE_URL`은 Server Component에서만 읽으며 브라우저 번들에 포함하지
+않습니다.
+
 ## Structure
 
 ```text
@@ -31,5 +41,5 @@ src/
 └── features/     # 기능별 UI와 로직
 ```
 
-서버 데이터 조회는 향후 기능 마일스톤에서 `features` 아래에 추가하며 페이지
-컴포넌트에 비즈니스 로직을 집중시키지 않습니다.
+관측 API 타입, 조회 로직과 UI는 `features/observation`에 모으고 페이지는 URL
+검색 조건을 해당 기능에 전달합니다.

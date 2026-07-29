@@ -17,6 +17,10 @@
 - Provider-independent astronomy domain contracts and application orchestration.
 - Offline sunset, twilight, moonrise, moonset, phase, and illumination calculation.
 - Coordinate-based IANA timezone resolution with explicit polar and missing-event states.
+- Explainable hourly observation scoring rules and grade boundaries.
+- Cross-midnight best observation window selection.
+- Public observation forecast API combining weather, astronomy, and scores.
+- Server-rendered observation search and result UI connected to the backend API.
 
 ### Changed
 
@@ -25,6 +29,7 @@
 - Closed Milestone 2 and activated Milestone 3 weather integration.
 - Added milestone identifiers to branch, commit, and pull request conventions.
 - Closed Milestone 3 and activated Milestone 4 astronomy engine work.
+- Closed Milestone 4 and activated Milestone 5 observation score work.
 
 ## v0.1.0
 
