@@ -21,6 +21,7 @@
 - Unified the planned public API inventory and error response contract.
 - Closed Milestone 2 and activated Milestone 3 weather integration.
 - Added milestone identifiers to branch, commit, and pull request conventions.
+- Closed Milestone 3 and activated Milestone 4 astronomy engine work.
 
 ## v0.1.0
 
