@@ -5,15 +5,16 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-**Milestone 1 — Backend Foundation**을 완료했습니다. Spring Boot 백엔드
-기반은 구현되었으며 제품 기능은 아직 구현하지 않았습니다.
+현재 저장소는 **Milestone 2 — Frontend Foundation** 단계입니다. Spring Boot
+백엔드와 Next.js 프런트엔드 기반은 구현되었으며 제품 기능은 아직 구현하지
+않았습니다.
 
 ## Technology
 
 | Area | Technology |
 |---|---|
 | Backend | Java 21, Spring Boot 3.5.x, Gradle |
-| Frontend | Node.js 22 LTS, Next.js, TypeScript, Tailwind CSS |
+| Frontend | Node.js 22.23.1, Next.js 16.2.12, TypeScript, Tailwind CSS |
 | Database | PostgreSQL 17, Flyway |
 | Infrastructure | Docker, Docker Compose, GitHub Actions |
 
@@ -23,7 +24,7 @@ StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보�
 stella-atlas/
 ├── .github/       # GitHub Actions와 협업 템플릿
 ├── backend/       # Spring Boot 애플리케이션
-├── frontend/      # Milestone 2에서 초기화할 Next.js 애플리케이션
+├── frontend/      # Next.js 애플리케이션
 ├── docker/        # 애플리케이션 컨테이너 구성
 ├── docs/          # 제품, 아키텍처, API 및 개발 문서
 ├── AGENTS.md      # AI 에이전트 작업 규칙
@@ -39,7 +40,7 @@ stella-atlas/
 - Git
 - Docker Desktop 또는 Docker Engine과 Compose 플러그인
 - Java 21
-- Node.js 22 LTS (Milestone 2부터 필요)
+- Node.js 22.23.1
 
 ## Local Development
 
@@ -73,8 +74,20 @@ cd backend
 있습니다. PostgreSQL 연결 정보는 루트 `.env.example`과
 `backend/src/main/resources/application.yml`을 기준으로 합니다.
 
-프런트엔드 실행·검증 명령은 Milestone 2에서 모듈을 초기화할 때 추가합니다.
-존재하지 않는 스크립트는 실행하지 않습니다.
+프런트엔드를 실행하고 검증합니다.
+
+```bash
+nvm use
+cd frontend
+npm ci
+npm run dev
+npm run lint
+npm run type-check
+npm run test
+npm run build
+```
+
+프런트엔드 개발 서버는 기본적으로 `http://localhost:3000`에서 실행됩니다.
 
 ## Documentation
 

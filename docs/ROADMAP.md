@@ -39,6 +39,8 @@
 - 테스트, 린트와 타입 검사
 - 로딩, 빈 상태 및 오류 상태 기반
 
+상태: 구현 완료, GitHub Actions 검증 대기
+
 ## Milestone 3 — Weather Integration
 
 - 날씨 공급자 인터페이스와 Adapter
