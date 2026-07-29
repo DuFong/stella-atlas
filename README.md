@@ -5,10 +5,9 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-현재 저장소는 **Milestone 4 — Astronomy Engine** 단계입니다. Spring Boot와
-Next.js 기반 및 Open-Meteo 날씨 연동을 완료했으며, 위치와 날짜에 따른 일몰,
-박명, 달의 위상·조도와 월출·월몰 계산 기반을 구현했습니다. Milestone 종료 전
-GitHub Actions 검증이 남아 있습니다.
+현재 저장소는 **Milestone 5 — Observation Score** 단계입니다. 날씨와 천문
+계산 기반을 완료했으며, 시간대별 조건을 설명 가능한 점수·등급·이유로 평가하고
+최적 관측 시간을 선택하는 기능을 구현합니다.
 
 ## Technology
 
