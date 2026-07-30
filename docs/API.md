@@ -22,11 +22,18 @@
 | Implemented | 1 | `GET /actuator/health` | 애플리케이션과 의존 서비스 상태 |
 | Implemented | 1 | `GET /actuator/info` | 빌드 및 애플리케이션 정보 확장 지점 |
 | Implemented | 5 | `GET /api/v1/observations` | 위치와 날짜의 통합 관측 예보 |
+| Foundation | 6 | `GET /oauth2/authorization/google` | OAuth profile의 Google OIDC 로그인 시작 |
+| Implemented | 6 | `GET /api/v1/auth/csrf` | 상태 변경 요청용 CSRF token 발급 |
+| Implemented | 6 | `GET /api/v1/users/me` | 로그인한 사용자 프로필 조회 |
+| Implemented | 6 | `POST /api/v1/auth/logout` | 현재 세션 로그아웃 |
 | Planned support | TBD | `GET /api/v1/locations/search` | 지역명 검색과 좌표·타임존 확인 |
-| Planned user | 6 | `GET /api/v1/users/me/locations/{locationId}` | 저장한 관측 장소 조회 |
-| Planned user | 6 | `POST /api/v1/users/me/locations` | 관측 장소 저장 |
-| Planned user | 6 | `GET /api/v1/users/me/records` | 관측 기록 목록 |
-| Planned user | 6 | `POST /api/v1/users/me/records` | 관측 기록 생성 |
+| Planned user | 7 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
+| Planned user | 7 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
+| Planned user | 7 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
+| Planned user | 7 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
+| Planned user | 7 | `GET /api/v1/users/me/recent-locations` | 최근 조회 위치 목록 |
+| Planned user | 7 | `GET /api/v1/users/me/records` | 관측 기록 목록 |
+| Planned user | 7 | `POST /api/v1/users/me/records` | 관측 기록 생성 |
 
 `Planned` API는 구현된 계약이 아니며 해당 마일스톤에서 요청·응답, 인증과 오류
 처리를 확정합니다. 날씨와 천문 공급자는 내부 Adapter이므로
@@ -35,7 +42,70 @@
 
 ---
 
-## 3. Observation Forecast API
+## 3. Authentication and Current User API
+
+Status: Authentication foundation implemented in Milestone 6.
+
+Google OIDC Authorization Code 로그인과 Spring Security의 서버 세션을
+사용합니다. 로그인 시작 endpoint는 브라우저를 Google로 redirect하고, callback
+성공 후 설정된 프런트엔드 주소로 돌아옵니다.
+
+Milestone 6은 client와 보안 경계를 구현한 단계입니다. 실제 Google Cloud OAuth
+애플리케이션 등록, 동의 화면, 운영 redirect URI와 내부 사용자 연결은 Milestone
+7에서 완료합니다. 그 전에는 프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인
+진입 UI를 활성화하지 않습니다.
+
+```http
+GET /oauth2/authorization/google
+```
+
+공개 관측 조회는 인증 없이 사용할 수 있습니다. `/api/v1/users/me/**`의 사용자
+리소스는 인증이 필요하며, 미인증 요청에는 `401 UNAUTHORIZED` 오류 계약을
+반환합니다.
+
+### Current user
+
+```http
+GET /api/v1/users/me
+```
+
+```json
+{
+  "name": "Stella Observer",
+  "email": "observer@example.com",
+  "pictureUrl": "https://example.com/profile.png"
+}
+```
+
+외부 provider subject, OAuth access token과 session identifier는 응답에
+포함하지 않습니다.
+
+### Logout
+
+상태를 변경하기 전에 CSRF token을 가져옵니다.
+
+```http
+GET /api/v1/auth/csrf
+```
+
+```json
+{
+  "headerName": "X-CSRF-TOKEN",
+  "token": "..."
+}
+```
+
+```http
+POST /api/v1/auth/logout
+```
+
+성공 시 `204 No Content`를 반환합니다. 세션을 사용하는 상태 변경 요청에는 CSRF
+토큰이 필요하며 클라이언트는 발급 응답의 header 이름과 token 값을 그대로
+전달합니다.
+
+---
+
+## 4. Observation Forecast API
 
 Status: Implemented in Milestone 5.
 
@@ -151,7 +221,7 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
 
 ---
 
-## 4. Data Conventions
+## 5. Data Conventions
 
 ### Date
 
@@ -193,7 +263,7 @@ moonIllumination: 0.18
 
 ---
 
-## 5. Error Response
+## 6. Error Response
 
 ```json
 {
@@ -243,7 +313,7 @@ moonIllumination: 0.18
 
 ---
 
-## 6. HTTP Status Rules
+## 7. HTTP Status Rules
 
 - `200 OK`: 정상 조회
 - `201 Created`: 리소스 생성
@@ -260,9 +330,10 @@ moonIllumination: 0.18
 
 ---
 
-## 7. Pagination
+## 8. Pagination
 
-Milestone 6의 기록 목록에는 커서 기반 페이지네이션을 우선 검토합니다. 아래
+Milestone 7의 기록 및 최근 위치 목록에는 커서 기반 페이지네이션을 우선
+검토합니다. 아래
 계약은 아직 확정되지 않은 예시입니다.
 
 ```http
@@ -281,7 +352,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 8. Idempotency
+## 9. Idempotency
 
 결제와 같은 기능이 도입되기 전에는 필수는 아니지만,  
 중복 생성 가능성이 있는 API는 멱등성을 고려합니다.
@@ -290,7 +361,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 9. Versioning
+## 10. Versioning
 
 초기에는 URL 버전을 사용합니다.
 
@@ -302,7 +373,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 10. API Documentation
+## 11. API Documentation
 
 Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정책에 따라
 결정합니다.
@@ -312,7 +383,7 @@ Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정
 
 ---
 
-## 11. API Review Checklist
+## 12. API Review Checklist
 
 - 입력 검증이 있는가?
 - 타임존이 명확한가?

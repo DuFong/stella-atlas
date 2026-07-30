@@ -93,6 +93,18 @@ Component에서 Spring Boot의 `GET /api/v1/observations`를 호출합니다. AP
 변환하고, 예상하지 못한 렌더링 오류는 App Router의 `error.tsx` 경계가
 처리합니다.
 
+인증 UI도 브라우저에 백엔드 base URL을 노출하지 않습니다. `/auth/login` Route
+Handler가 Google 로그인 시작 endpoint로 redirect하고, `/auth/logout` Route
+Handler가 현재 session cookie를 전달해 CSRF token 발급과 백엔드 로그아웃을
+완료합니다. Server Component는 브라우저 요청의 session cookie를
+`GET /api/v1/users/me`에 전달해 로그인 상태를 렌더링합니다. 로컬 개발에서는
+프런트엔드와 백엔드가 같은 `localhost` hostname을 사용하며, 운영에서 hostname을
+분리하면 공통 cookie domain 또는 인증 proxy 전략을 배포 설계에 포함해야 합니다.
+Google Cloud 등록과 실제 계정 callback 검증은 Milestone 7에서 진행합니다.
+그 전에는 프런트 서버의 `AUTH_ENABLED`를 `false`로 유지해 로그인 진입점을
+준비 중 상태로 표시합니다. 등록과 비밀값 설정이 완료된 환경에서만 `true`로
+전환합니다.
+
 ---
 
 ## 5. Backend Modules
@@ -154,13 +166,30 @@ Component에서 Spring Boot의 `GET /api/v1/observations`를 호출합니다. AP
 - 위도 및 경도 검증
 - 지역명 검색
 - 타임존 해석
-- 저장된 관측 장소
+- 즐겨찾기 관측 장소
+- 최근 조회 위치
+
+Milestone 7에서 즐겨찾기 위치와 최근 조회 위치를 인증된 내부 사용자 UUID에
+귀속합니다. 모든 조회는 소유자 범위로 제한하고, 정확한 좌표는 사용자가
+명시적으로 즐겨찾기를 저장하거나 최근 위치 기록에 동의한 경우에만
+영구 저장합니다. 최근 위치에는 개수 또는 보존 기간 제한을 둡니다.
 
 ### user
 
 사용자 및 인증을 담당합니다.
 
-MVP 초기에는 비로그인 조회를 우선합니다.
+핵심 관측 조회는 비로그인으로 유지합니다. Milestone 6에서는 Google OIDC
+Authorization Code client와 Spring Security 서버 세션 기반을 구현했으며
+`/api/v1/users/me/**` 리소스에 인증을 요구합니다. OAuth access token, provider
+subject와 session identifier는 공개 API에 노출하지 않습니다.
+
+OAuth profile이 활성화되지 않은 로컬 실행에서는 Google client registration을
+만들지 않지만 사용자 API의 인증 경계는 유지합니다. 상태 변경 요청에는 CSRF
+보호를 적용하고, 단일 인스턴스 메모리 세션을 다중 인스턴스 운영으로 확장하기
+전 공유 세션 저장소를 다시 결정합니다.
+
+Google Cloud OAuth 애플리케이션 등록, 실제 로그인 callback 검증과 provider
+계정을 내부 사용자 UUID에 연결하는 영속화는 Milestone 7에서 진행합니다.
 
 ### record
 
@@ -419,7 +448,7 @@ Redis는 다중 인스턴스 운영 또는 공유 캐시 필요성이 확인된 
 
 ### Later
 
-- OAuth 2.0 로그인
+- 추가 OIDC provider
 - 사용자별 리소스 권한
 - 세션 또는 토큰 전략
 - 계정 삭제

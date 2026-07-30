@@ -27,6 +27,10 @@ describe("Home", () => {
       screen.getByRole("button", { name: /관측 조건 확인/ }),
     ).toBeInTheDocument();
     expect(
+      screen.getByText("Google 로그인 준비 중"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Milestone 6")).toBeInTheDocument();
+    expect(
       screen.getByRole("article", { name: "관측 조건 조회 안내" }),
     ).toBeInTheDocument();
   });

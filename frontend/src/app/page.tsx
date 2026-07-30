@@ -1,3 +1,6 @@
+import { getAuthSession } from "@/features/auth/api/get-auth-session";
+import { AccountMenu } from "@/features/auth/components/account-menu";
+import type { AuthSession } from "@/features/auth/types/auth";
 import { getObservation } from "@/features/observation/api/get-observation";
 import { ObservationDetails } from "@/features/observation/components/observation-details";
 import { ObservationSearchForm } from "@/features/observation/components/observation-search-form";
@@ -10,6 +13,7 @@ import type {
   ObservationApiResult,
   ObservationQuery,
 } from "@/features/observation/types/observation";
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 const steps = [
@@ -34,6 +38,7 @@ type HomeSearchParams = Promise<{
   latitude?: string | string[];
   longitude?: string | string[];
   date?: string | string[];
+  auth?: string | string[];
 }>;
 
 export default async function Home({
@@ -43,19 +48,38 @@ export default async function Home({
 }) {
   const params = await searchParams;
   const query = toQuery(params);
-  const result = isCompleteQuery(query)
-    ? await getObservation(query)
-    : undefined;
+  const cookieHeader = (await cookies())
+    .getAll()
+    .map(({ name, value }) => `${name}=${value}`)
+    .join("; ");
+  const authEnabled = process.env.AUTH_ENABLED === "true";
+  const [session, result] = await Promise.all([
+    authEnabled
+      ? getAuthSession(cookieHeader)
+      : Promise.resolve<AuthSession>({ status: "disabled" }),
+    isCompleteQuery(query) ? getObservation(query) : undefined,
+  ]);
 
-  return <HomeContent query={query} result={result} />;
+  return (
+    <HomeContent
+      query={query}
+      result={result}
+      session={session}
+      authNotice={toAuthNotice(firstValue(params.auth))}
+    />
+  );
 }
 
 export function HomeContent({
   query,
   result,
+  session = { status: "disabled" },
+  authNotice,
 }: {
   query: ObservationQuery;
   result?: ObservationApiResult;
+  session?: AuthSession;
+  authNotice?: "logout-error" | "oauth-pending";
 }) {
   return (
     <main>
@@ -68,8 +92,19 @@ export function HomeContent({
             </span>
             <span>StellaAtlas</span>
           </Link>
-          <span className="milestone-badge">Milestone 5</span>
+          <div className="nav-actions">
+            <span className="milestone-badge">Milestone 6</span>
+            <AccountMenu session={session} />
+          </div>
         </nav>
+
+        {authNotice ? (
+          <p className="auth-notice" role="alert">
+            {authNotice === "logout-error"
+              ? "로그아웃을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요."
+              : "Google 로그인은 Milestone 7에서 OAuth 등록 후 활성화됩니다."}
+          </p>
+        ) : null}
 
         <div className="hero-grid">
           <div className="hero-copy">
@@ -151,4 +186,12 @@ function currentDate(): string {
 
 function isCompleteQuery(query: ObservationQuery): boolean {
   return Boolean(query.latitude && query.longitude && query.date);
+}
+
+function toAuthNotice(
+  value: string | undefined,
+): "logout-error" | "oauth-pending" | undefined {
+  return value === "logout-error" || value === "oauth-pending"
+    ? value
+    : undefined;
 }

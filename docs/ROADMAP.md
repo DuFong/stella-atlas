@@ -73,15 +73,41 @@ StellaAtlas 날씨 모델로 변환합니다.
 - 최적 관측 시간 선택
 - 규칙 및 경계 테스트
 
-상태: 구현 완료, GitHub Actions 검증 대기
+상태: 완료
 
-## Milestone 6 — User Features
+## Milestone 6 — Authentication Foundation
 
-- 인증
-- 관측 장소 저장
-- 관측 기록
+목표: 핵심 관측 조회의 비로그인 접근성을 유지하면서 OAuth2/OIDC와 Spring
+Security 기반 인증 경계 및 프런트엔드 로그인 흐름을 준비합니다.
 
-## Milestone 7 — Deployment
+- Spring Security와 Google OIDC client 기반
+- 공개 관측 API와 인증 사용자 API의 접근 경계
+- 세션, CSRF, 현재 사용자 조회와 로그아웃
+- 반응형 로그인·사용자·로그아웃 UI
+- 환경변수 기반 provider 설정
+
+상태: 완료
+
+실제 Google Cloud OAuth 애플리케이션 등록과 사용자 데이터 영속화는 Milestone
+7에서 진행합니다.
+
+## Milestone 7 — OAuth Integration and Location Library
+
+목표: StellaAtlas를 Google OAuth 애플리케이션으로 등록해 실제 사용자 로그인을
+완성하고, 로그인 사용자가 자주 찾는 관측 위치를 다시 활용할 수 있게 합니다.
+
+- Google Cloud OAuth 동의 화면과 Web client 등록
+- 로컬·운영 redirect URI 및 비밀값 설정
+- Google 계정과 내부 사용자 UUID 연결
+- 관측 위치 즐겨찾기 등록·조회·삭제
+- 최근 조회 위치 기록과 사용자별 목록
+- 즐겨찾기·최근 위치에서 관측 조건 다시 조회
+- 사용자별 소유권, 위치정보 최소화와 보존 정책
+- 관측 기록 생성과 사용자별 목록
+
+상태: 계획됨, 아직 시작하지 않음
+
+## Milestone 8 — Deployment
 
 - 운영 배포와 HTTPS
 - 비밀 관리, 모니터링과 백업
