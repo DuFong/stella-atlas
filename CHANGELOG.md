@@ -24,6 +24,12 @@
 - Google OIDC login and Spring Security session foundation.
 - Authenticated current-user API with JSON authentication errors and CSRF protection.
 - Responsive Google login, current-user, and session logout frontend UI.
+- MIT-licensed Astronomy Engine integration behind a planetarium domain port.
+- Client-side Canvas sky simulation with time, direction, zoom, and location controls.
+- Curated bright-star and representative-constellation data with deterministic scene tests.
+- Local observation journal with image upload, camera capture, EXIF-assisted fields, comments, and hashtags.
+- Atomic IndexedDB post and image persistence with local list, edit, and delete flows.
+- Explicit camera permission, missing metadata, unsupported Canvas, and storage failure states.
 
 ### Changed
 
@@ -34,7 +40,9 @@
 - Closed Milestone 3 and activated Milestone 4 astronomy engine work.
 - Closed Milestone 4 and activated Milestone 5 observation score work.
 - Closed Milestone 5 and activated Milestone 6 user feature work.
-- Completed Milestone 6 authentication foundation and planned Milestone 7 OAuth integration and location library.
+- Completed Milestone 6 authentication foundation.
+- Redefined Milestone 7 as local observation journaling and interactive sky simulation, and shifted OAuth/location work and deployment to Milestones 8 and 9.
+- Started Milestone 7 and selected a bounded project-owned Canvas renderer after rejecting D3-Celestial and Stellarium Web Engine integration risks.
 
 ## v0.1.0
 

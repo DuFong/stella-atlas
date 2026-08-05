@@ -5,10 +5,10 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-**Milestone 6 — Authentication Foundation**을 완료했습니다. 비로그인 관측
-조회는 계속 제공하면서 OAuth2/OIDC와 Spring Security 기반 인증 경계 및
-프런트엔드 로그인 흐름을 준비했습니다. 실제 Google OAuth 애플리케이션 등록과
-즐겨찾기·최근 조회 위치 기능은 Milestone 7에서 진행합니다.
+**Milestone 7 — Observation Journal and Sky Simulation**을 완료했습니다.
+비로그인 관측 조회에 사진 기반 로컬 관측 기록과 대화형 밤하늘 시뮬레이션을
+추가했습니다. 실제 Google OAuth 애플리케이션 등록과 즐겨찾기·최근 조회 위치
+기능은 Milestone 8에서 진행합니다.
 
 ## Technology
 
@@ -76,7 +76,7 @@ cd backend
 `backend/src/main/resources/application.yml`을 기준으로 합니다.
 
 Milestone 6의 Google 로그인 기반은 OAuth 프로필에서만 활성화됩니다. 실제
-Google Cloud Console 등록과 운영 연결은 Milestone 7 범위이며, 연동할 때 OAuth
+Google Cloud Console 등록과 운영 연결은 Milestone 8 범위이며, 연동할 때 OAuth
 클라이언트에 다음 로컬 redirect URI를 등록합니다.
 
 ```text
@@ -101,7 +101,7 @@ API는 사용할 수 있지만 로그인 시작 endpoint는 활성화되지 않�
 프런트엔드의 `Google로 로그인` 버튼은 `/auth/login` Route Handler를 통해 이
 로그인 흐름을 시작합니다. 로그인 후에는 사용자 이름과 로그아웃 버튼을 표시하며,
 로그아웃 Route Handler가 CSRF token과 backend session cookie를 전달합니다.
-Milestone 7의 Google OAuth 등록 전에는 `AUTH_ENABLED=false`를 유지해 버튼을
+Milestone 8의 Google OAuth 등록 전에는 `AUTH_ENABLED=false`를 유지해 버튼을
 준비 중 상태로 표시하고, 실제 client 설정과 callback 검증 후 `true`로
 전환합니다.
 
@@ -152,6 +152,16 @@ npm run build
 `API_BASE_URL`은 Next.js 서버가 호출할 백엔드 주소이며 기본값은
 `http://localhost:8080`입니다. 브라우저가 백엔드를 직접 호출하지 않으므로
 별도 CORS 설정은 필요하지 않습니다.
+
+Milestone 7의 첫 밤하늘 시뮬레이션은 `/sky`에서 확인할 수 있습니다. 위치와 UTC
+시각을 기준으로 태양·달·주요 행성과 밝은 별의 지평 좌표를 브라우저에서 계산하고
+Canvas에 표시합니다. 이 기능은 서버 API나 추가 `application.yml` 설정을
+사용하지 않습니다.
+
+로컬 관측 기록은 `/journal`에서 확인할 수 있습니다. 이미지 업로드 또는 지원
+기기의 카메라 촬영, EXIF 촬영 시각·GPS 자동입력, 코멘트·해시태그, 목록·수정·
+삭제를 제공합니다. 사진과 게시물은 최대 20MB 단일 이미지 기준으로 현재
+브라우저의 IndexedDB에만 저장되며 서버나 PostgreSQL로 전송되지 않습니다.
 
 ## Documentation
 

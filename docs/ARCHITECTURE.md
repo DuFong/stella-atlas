@@ -100,7 +100,7 @@ Handler가 현재 session cookie를 전달해 CSRF token 발급과 백엔드 로
 `GET /api/v1/users/me`에 전달해 로그인 상태를 렌더링합니다. 로컬 개발에서는
 프런트엔드와 백엔드가 같은 `localhost` hostname을 사용하며, 운영에서 hostname을
 분리하면 공통 cookie domain 또는 인증 proxy 전략을 배포 설계에 포함해야 합니다.
-Google Cloud 등록과 실제 계정 callback 검증은 Milestone 7에서 진행합니다.
+Google Cloud 등록과 실제 계정 callback 검증은 Milestone 8에서 진행합니다.
 그 전에는 프런트 서버의 `AUTH_ENABLED`를 `false`로 유지해 로그인 진입점을
 준비 중 상태로 표시합니다. 등록과 비밀값 설정이 완료된 환경에서만 `true`로
 전환합니다.
@@ -169,7 +169,7 @@ Google Cloud 등록과 실제 계정 callback 검증은 Milestone 7에서 진행
 - 즐겨찾기 관측 장소
 - 최근 조회 위치
 
-Milestone 7에서 즐겨찾기 위치와 최근 조회 위치를 인증된 내부 사용자 UUID에
+Milestone 8에서 즐겨찾기 위치와 최근 조회 위치를 인증된 내부 사용자 UUID에
 귀속합니다. 모든 조회는 소유자 범위로 제한하고, 정확한 좌표는 사용자가
 명시적으로 즐겨찾기를 저장하거나 최근 위치 기록에 동의한 경우에만
 영구 저장합니다. 최근 위치에는 개수 또는 보존 기간 제한을 둡니다.
@@ -189,13 +189,49 @@ OAuth profile이 활성화되지 않은 로컬 실행에서는 Google client reg
 전 공유 세션 저장소를 다시 결정합니다.
 
 Google Cloud OAuth 애플리케이션 등록, 실제 로그인 callback 검증과 provider
-계정을 내부 사용자 UUID에 연결하는 영속화는 Milestone 7에서 진행합니다.
+계정을 내부 사용자 UUID에 연결하는 영속화는 Milestone 8에서 진행합니다.
 
 ### record
 
-관측 기록을 저장합니다.
+사진과 코멘트가 포함된 관측 게시물을 관리합니다.
 
-MVP 1차 범위에는 포함하지 않을 수 있습니다.
+Milestone 7은 프런트엔드의 로컬 기능으로 구현했습니다. 게시물 metadata와 이미지
+Blob은 IndexedDB에 저장하고, `ObservationPostRepository`와 `MediaStore`
+애플리케이션 port가 브라우저 API를 직접 감쌉니다. UI와 도메인 모델은 IndexedDB
+key나 object store 구조를 알지 않습니다. Milestone 8 이후 서버 저장소를 추가할
+때 같은 port의 remote adapter 또는 local/remote 동기화 adapter를 구현합니다.
+현재 `IndexedDbObservationJournal` adapter가 metadata와 Blob 변경을 하나의
+read-write transaction으로 처리합니다.
+
+주요 책임:
+
+- 이미지 선택과 카메라 촬영 결과 수신
+- EXIF 촬영 시각·GPS 추출과 출처 표시
+- 사용자 수정이 가능한 촬영 위치·시각, 코멘트와 해시태그
+- 로컬 게시물의 생성·조회·수정·삭제
+- 저장 용량, 권한, 손상 파일과 누락 metadata 오류 처리
+
+사진 입력과 저장은 브라우저 상호작용이 필요하므로 Client Component에 둡니다.
+카메라 stream은 사용이 끝나거나 화면을 벗어날 때 모든 track을 중지합니다.
+서버 렌더링 중 IndexedDB에 접근하지 않으며 hydration 이후에만 로컬 목록을
+불러옵니다.
+
+### planetarium
+
+선택한 좌표와 시각의 밤하늘을 대화형으로 렌더링합니다. 플라네타리움 엔진과
+별 카탈로그는 프런트엔드 infrastructure adapter로 격리하고, 페이지는 위치,
+절대 시각, 시야 방향과 확대 수준을 프로젝트가 정의한 입력 모델로 전달합니다.
+
+기술 spike 결과 D3-Celestial은 BSD-3-Clause 코드임에도 D3 3.x 고정, 큰 npm
+package와 혼합된 catalog 출처 때문에 채택하지 않았습니다. Stellarium Web
+Engine도 AGPL-3.0 공개 의무 때문에 제외합니다. 초기 구현은 MIT 라이선스의
+Astronomy Engine으로 태양·달·행성 및 지평 좌표를 계산하고 StellaAtlas의 Canvas
+2D adapter가 직접 렌더링합니다. 밝은 별과 대표 별자리만 포함한 검토 가능한
+소규모 catalog로 시작하며 확대 전에 출처와 재배포 조건을 다시 검토합니다.
+
+Milestone 7의 최소 범위는 시간 이동, 방향 전환, 확대·축소, 주요 천체와 별자리
+표시입니다. 센서 기반 AR, 사진 plate solving, 망원경 제어와 자체 대규모 천체
+카탈로그 서버는 제외합니다.
 
 ---
 
@@ -286,6 +322,25 @@ reasons
 recommended
 ```
 
+### ObservationPost
+
+```text
+localId
+image: blob reference
+capturedAt: zoned date-time or empty
+coordinate: latitude/longitude or empty
+comment
+hashtags
+metadataSources: user/exif/capture-context
+createdAt
+updatedAt
+```
+
+EXIF 값은 신뢰된 사실이 아니라 편집 가능한 초깃값입니다. 카메라로 새로 만든
+이미지 Blob에는 EXIF가 없을 수 있으므로 촬영 컨텍스트의 현재 시각과, 별도
+동의를 받은 경우에만 브라우저 위치를 제안합니다. 제안값과 EXIF 값은 출처를
+구분하고 저장 전에 사용자가 확인할 수 있어야 합니다.
+
 ---
 
 ## 8. Data Flow
@@ -301,6 +356,31 @@ recommended
 8. Score policy evaluates each time slot
 9. Best window selector chooses recommendation
 10. API maps the domain result and Next.js renders the user-facing response
+```
+
+### Local observation post flow
+
+```text
+1. User selects an image or explicitly grants camera access and captures one
+2. Browser validates the file and attempts EXIF extraction
+3. Form proposes available time and coordinate values with their source
+4. User reviews or edits every field and submits the post
+5. Application port stores metadata and the image Blob in IndexedDB atomically
+6. Client-side list reads local posts after hydration
+```
+
+이 흐름은 Milestone 7에서 백엔드 API를 호출하지 않습니다. 브라우저 저장소
+삭제, 사생활 보호 모드, origin 변경 또는 기기 변경 시 데이터가 유지된다고
+보장하지 않습니다.
+
+### Sky simulation flow
+
+```text
+1. User selects coordinate and local date-time
+2. Frontend converts the input to an explicit absolute instant and timezone
+3. Planetarium adapter calculates horizontal coordinates on the client
+4. Engine renders sky state and handles time, direction and zoom controls
+5. Canvas adapter renders the scene and UI exposes an accessible object list
 ```
 
 ---
@@ -393,6 +473,11 @@ Redis는 다중 인스턴스 운영 또는 공유 캐시 필요성이 확인된 
 - observation_record
 - favorite_object
 - provider_request_log 또는 집계 메트릭
+
+Milestone 7의 관측 게시물은 PostgreSQL이 아니라 현재 브라우저의 IndexedDB에만
+저장합니다. 이 저장소는 임시·기기 종속 저장소이며 서버 백업으로 간주하지
+않습니다. 서버 저장을 도입할 때 `observation_record` schema, object storage,
+소유권, 업로드 제한, 악성 파일 검사와 로컬 데이터 이전 정책을 별도로 결정합니다.
 
 ### Rules
 
@@ -511,5 +596,7 @@ Database → Managed PostgreSQL
 - 천문 계산 부하 증가
 - Python 생태계 의존 기능 등장
 - 사용자 위치 데이터 저장 확대
+- 사진과 정확한 촬영 위치의 서버 저장 또는 공유 기능 도입
+- 플라네타리움 엔진이나 천체 카탈로그의 라이선스·비용 변경
 - 알림과 배치 처리 도입
 - 모바일 앱 API 제공

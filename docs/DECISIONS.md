@@ -448,5 +448,133 @@ Milestone 5에는 날씨와 천문 조건을 동일 입력에 대해 항상 같�
   API를 호출할 때 요청 cookie를 전달해야 합니다.
 - provider 계정을 내부 사용자 UUID에 연결하는 영속화는 저장 장소 API를
   구현하기 전에 추가합니다.
-- Google Cloud OAuth 애플리케이션 등록과 실제 계정 연동은 Milestone 7에서
+- Google Cloud OAuth 애플리케이션 등록과 실제 계정 연동은 Milestone 8에서
   진행하며, Milestone 6은 client·보안 경계와 UI 기반까지만 완료합니다.
+
+---
+
+## ADR-017 — Local-First Observation Posts with Replaceable Storage Ports
+
+- Status: Accepted
+- Date: 2026-08-05
+
+### Context
+
+Milestone 7에는 사진, 촬영 위치·시각, 코멘트와 해시태그를 담는 관측 게시물이
+필요합니다. 아직 사진을 보관할 서버 object storage가 없고 실제 OAuth 사용자
+영속화도 Milestone 8로 계획되어 있습니다. 사용자는 이미지의 EXIF 값으로 입력
+부담을 줄이되 자동 입력값을 직접 수정할 수 있어야 합니다.
+
+### Decision
+
+- Milestone 7의 게시물 metadata와 이미지 Blob은 브라우저 IndexedDB에
+  저장합니다. 용량과 검색에 부적합한 `localStorage`에는 이미지를 저장하지
+  않습니다.
+- 프런트엔드 application 계층에 게시물 repository와 media store port를 두고
+  IndexedDB 코드는 infrastructure adapter에 격리합니다.
+- 로컬 schema는 version을 가지며 게시물 metadata와 이미지 저장은 실패 시
+  불완전한 게시물이 남지 않도록 하나의 트랜잭션 경계에서 처리합니다.
+- EXIF GPS와 촬영 시각은 편집 가능한 초깃값으로만 사용합니다. 값이 없거나
+  손상되었으면 비워 두고 추정하지 않습니다.
+- 브라우저 카메라 캡처로 생성된 이미지에는 EXIF가 없을 수 있습니다. 촬영
+  컨텍스트의 현재 시각과 별도 동의를 받은 브라우저 위치를 제안할 수 있으나
+  출처를 표시하고 저장 전에 사용자가 확인할 수 있게 합니다.
+- 로컬 데이터는 해당 origin과 브라우저 프로필에 종속되고 사용자가 브라우저
+  데이터를 지우면 손실될 수 있음을 UI에 명시합니다.
+- 서버 저장을 도입할 때 remote adapter, 미디어 업로드 계약과 명시적인 migration
+  절차를 추가하며 IndexedDB schema를 서버 API 계약으로 취급하지 않습니다.
+
+### Consequences
+
+- 백엔드와 `application.yml` 변경 없이 로컬에서 게시물 기능을 검증할 수
+  있습니다.
+- 새로고침과 브라우저 재시작은 견디지만 기기 간 동기화와 백업은 제공하지
+  않습니다.
+- 브라우저별 quota, 사생활 보호 모드와 저장소 정리 정책 때문에 영구 보존을
+  보장할 수 없습니다.
+- GPS가 포함된 사진은 민감한 위치 정보를 가질 수 있으므로 저장 전에 값을
+  노출하고 수정·삭제를 지원해야 합니다.
+- EXIF parser는 MIT 라이선스의 `exifr:7.1.3`을 browser infrastructure adapter에
+  격리했습니다. 읽을 수 없거나 손상된 metadata는 저장 실패로 취급하지 않고 빈
+  초깃값으로 처리합니다.
+
+---
+
+## ADR-018 — Client-Side Planetarium Behind an Adapter
+
+- Status: Superseded by ADR-019
+- Date: 2026-08-05
+
+### Context
+
+Milestone 7에는 Stellarium 또는 Star Walk와 유사하게 선택한 위치와 시각의
+밤하늘을 탐색하는 기능이 필요합니다. 현재 Commons SunCalc adapter는 태양·달과
+박명 계산에는 적합하지만 별 카탈로그, 투영과 대화형 WebGL 렌더링 엔진은
+제공하지 않습니다.
+
+### Decision
+
+- 시뮬레이션은 프런트엔드 Client Component에서 실행하고 플라네타리움 엔진을
+  프로젝트가 정의한 adapter 뒤에 격리합니다.
+- Milestone 7의 첫 구현 전에 짧은 기술 spike로 라이선스, 배포 방식, 번들 크기,
+  원격 데이터 의존성, 모바일 성능, 접근성과 유지보수 상태를 검증합니다.
+- Stellarium Web Engine은 WebGL/WASM 기반으로 웹에 임베드할 수 있는 후보지만
+  AGPL-3.0 라이선스이므로 프로젝트 라이선스와 소스 제공 의무가 승인되기 전에는
+  의존성이나 소스 코드를 포함하지 않습니다.
+- Star Walk와 같은 상용 제품은 공개적으로 사용 가능한 embedding SDK와 이용
+  조건이 확인된 경우에만 후보로 채택합니다.
+- 엔진과 무관한 입력은 좌표, 명시적인 timezone의 시각, 시야 방향과 확대 수준으로
+  유지합니다. UI는 WebGL 미지원과 초기화 실패의 대체 상태를 제공합니다.
+- 자체 천체 카탈로그 API, 센서 기반 AR과 사진 분석은 Milestone 7에서 제외합니다.
+
+### Consequences
+
+- 현재 Spring Boot astronomy module과 `application.yml`을 변경하지 않고도
+  시뮬레이터를 추가할 수 있습니다.
+- 최종 엔진이 정해지기 전까지 구현 의존성, 정확한 asset hosting 방식과 보안
+  헤더 변경은 미확정입니다.
+- 엔진 교체 비용은 adapter에서 제한되지만 렌더링 기능 차이까지 완전히 숨길 수는
+  없습니다.
+- 선택한 엔진과 catalog의 라이선스, attribution과 네트워크 출처를
+  `THIRD_PARTY_NOTICES.md`에 추가해야 합니다.
+
+---
+
+## ADR-019 — Astronomy Engine with a Project-Owned Canvas Renderer
+
+- Status: Accepted
+- Date: 2026-08-05
+
+### Context
+
+ADR-018에 따라 웹 플라네타리움 후보를 검증했습니다. Stellarium Web Engine은
+AGPL-3.0 의무가 프로젝트의 미확정 배포 라이선스에 위험합니다. D3-Celestial의
+코드는 BSD-3-Clause이지만 npm package가 D3 3.5.17에 고정되고 약 49MB의 source,
+과거 배포본과 여러 catalog를 함께 포함합니다. 포함 데이터에는 Stellarium
+sky-culture 파생 번역과 서로 다른 출처가 섞여 있어 코드 라이선스만으로 상업적
+재배포 범위를 확정하기 어렵습니다.
+
+### Decision
+
+- D3-Celestial과 Stellarium Web Engine을 의존성으로 추가하지 않습니다.
+- MIT 라이선스의 `astronomy-engine:2.1.19`를 프런트엔드 계산 엔진으로 사용합니다.
+- `PlanetariumEngine` port가 위치·절대 시각을 `PlanetariumScene`으로 변환하며,
+  Astronomy Engine adapter가 태양·달·주요 행성과 별의 지평 좌표를 계산합니다.
+- StellaAtlas가 소유하는 Canvas 2D renderer가 scene을 화면에 투영합니다. UI는
+  시간 이동, 방향 회전, 확대·축소, 현재 위치 입력과 텍스트 천체 목록을
+  제공합니다.
+- 초기 별 catalog는 밝은 별과 오리온자리, 큰곰자리, 여름철 대삼각형에 필요한
+  작은 J2000 좌표 목록으로 제한합니다. 대규모 catalog나 sky-culture data는
+  출처와 재배포 조건을 별도 승인한 뒤 추가합니다.
+- 시뮬레이션 시각은 첫 구현에서 UTC로 명시하고 서버 설정 없이 브라우저에서
+  계산합니다.
+
+### Consequences
+
+- AGPL/GPL 코드 결합 없이 상업 서비스 가능성을 유지합니다.
+- 전체 Stellarium 기능보다 작은 관측 보조용 2D 하늘 지도에 집중합니다.
+- 사실적인 대기, 고해상도 행성 texture, 전체 별자리 문화와 대규모 deep-sky
+  catalog는 제공하지 않습니다.
+- 렌더러와 catalog의 정확도, 모바일 성능과 접근성을 프로젝트가 직접 검증하고
+  유지해야 합니다.
+- 백엔드와 `application.yml` 변경은 필요하지 않습니다.

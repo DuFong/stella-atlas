@@ -29,7 +29,23 @@ describe("Home", () => {
     expect(
       screen.getByText("Google 로그인 준비 중"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Milestone 6")).toBeInTheDocument();
+    expect(screen.getByText("Milestone 7")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "관측 기록" }),
+    ).toHaveAttribute("href", "/journal");
+    expect(
+      screen.getByRole("link", { name: "밤하늘 시뮬레이션" }),
+    ).toHaveAttribute("href", "/sky");
+    expect(
+      screen.getByRole("link", {
+        name: /오늘 밤하늘을 먼저 둘러보세요/,
+      }),
+    ).toHaveAttribute("href", "/sky");
+    expect(
+      screen.getByRole("link", {
+        name: /관측의 순간을 사진으로 남겨보세요/,
+      }),
+    ).toHaveAttribute("href", "/journal");
     expect(
       screen.getByRole("article", { name: "관측 조건 조회 안내" }),
     ).toBeInTheDocument();

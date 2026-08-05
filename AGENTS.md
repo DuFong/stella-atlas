@@ -151,8 +151,9 @@ Milestone 3 — Weather Integration
 Milestone 4 — Astronomy Engine
 Milestone 5 — Observation Score
 Milestone 6 — Authentication Foundation
-Milestone 7 — OAuth Integration and Location Library
-Milestone 8 — Deployment
+Milestone 7 — Observation Journal and Sky Simulation
+Milestone 8 — OAuth Integration and Location Library
+Milestone 9 — Deployment
 ```
 
 Codex must not implement future milestone features unless explicitly requested.
@@ -1053,53 +1054,51 @@ Notes
 No active implementation milestone
 ```
 
-Status: Milestone 6 is complete. Milestone 7 is planned but has not been
+Status: Milestone 7 is complete. Milestone 8 is planned but has not been
 explicitly started.
 
-## Milestone Goal
+## Most Recently Completed Milestone Goal
 
-Milestone 6 keeps the core observation forecast available without login while
-establishing the OAuth2/OIDC, Spring Security session, CSRF, current-user, and
-frontend account UI foundation.
+Milestone 7 adds local-first observation posts with image selection or camera
+capture, editable EXIF-assisted time and coordinates, comments and hashtags,
+plus an interactive client-side sky simulation. Posts and image blobs remain in
+the current browser's IndexedDB until server persistence is designed. The
+sky simulation uses the MIT-licensed Astronomy Engine behind a project port and
+a project-owned Canvas renderer. D3-Celestial and Stellarium Web Engine are not
+dependencies.
 
 ## Current Scope
 
 Allowed work:
 
-- documentation and verification needed to close Milestone 6;
 - fixes to the completed authentication foundation;
-- preparation that does not implement Milestone 7 product behavior.
+- documentation and verification needed to close Milestone 7;
+- fixes to the completed local journal and interactive sky simulation;
+- preparation that does not implement Milestone 8 product behavior.
 
-Out of scope until explicitly started:
+Out of scope until Milestone 8 is explicitly started:
 
 - Google Cloud OAuth consent screen and client registration;
 - internal user persistence and provider identity mapping;
 - favorite observation locations;
 - recent queried location history;
-- observation records;
+- server-side observation record or media persistence;
 - social networking and community features;
-- observation photo uploads;
 - notifications and personalized recommendations;
 - public provider-oriented weather or astronomy endpoints;
 - production deployment.
 
-## Milestone 6 Completion Criteria
+## Milestone 7 Completion Criteria
 
-- the public observation forecast remains usable without an account;
-- Spring Security distinguishes public and authenticated endpoint boundaries;
-- Google OIDC client configuration is isolated behind an explicit profile and
-  environment variables;
-- current-user, CSRF, and session logout endpoints have stable contracts;
-- authentication errors use the shared JSON error response;
-- OAuth tokens, provider subjects, session identifiers, and secrets are not
-  exposed through public responses or committed configuration;
-- responsive login, current-user, unavailable, and logout UI states are
-  implemented;
-- frontend route handlers connect login and CSRF-protected logout flows without
-  exposing the backend base URL to browser code;
-- backend checks and frontend lint, type-check, tests, and production build pass;
-- API, architecture, decision, setup, and privacy documentation match the
-  implementation.
+- image upload and supported-device camera capture create editable local posts;
+- EXIF time and GPS are proposed when present and missing metadata remains blank;
+- metadata and image Blob changes are atomic in the versioned IndexedDB adapter;
+- local posts support list, detail, update, and delete flows with privacy notice;
+- camera, location, metadata, storage, and Canvas failure states are explicit;
+- the sky simulator supports deterministic time, direction, zoom, object, and
+  constellation rendering behind a replaceable engine port;
+- runtime dependencies and distribution obligations are documented;
+- frontend lint, type-check, tests, and production build pass.
 
 ---
 
