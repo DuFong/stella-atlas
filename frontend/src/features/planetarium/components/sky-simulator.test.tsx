@@ -119,4 +119,35 @@ describe("SkySimulator", () => {
     );
     expect(screen.getByRole("option", { name: "서울 천문대 · Asia/Seoul" })).toBeInTheDocument();
   });
+
+  it("loads and clears recent queried locations", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <SkySimulator
+        initialObservedAt="2026-08-05T13:00:00Z"
+        favoriteLocationsEnabled
+        initialRecentLocations={[{
+          latitude: 35.1796,
+          longitude: 129.0756,
+          timezone: "Asia/Seoul",
+          lastQueriedAt: "2026-08-24T04:00:00Z",
+        }]}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("최근 조회 위치"), {
+      target: { value: "0" },
+    });
+    expect(screen.getByLabelText("위도")).toHaveValue(35.1796);
+
+    fireEvent.click(screen.getByRole("button", { name: "최근 위치 모두 삭제" }));
+    await waitFor(() => {
+      expect(screen.getByText("최근 조회 위치를 모두 삭제했습니다.")).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/recent-locations",
+      { method: "DELETE" },
+    );
+  });
 });

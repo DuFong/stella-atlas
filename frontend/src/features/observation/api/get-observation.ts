@@ -8,17 +8,23 @@ import { getBackendApiUrl } from "@/lib/backend-api";
 
 export async function getObservation(
   query: ObservationQuery,
+  cookieHeader = "",
+  rememberLocation = false,
 ): Promise<ObservationApiResult> {
   const url = getBackendApiUrl("/api/v1/observations");
   url.searchParams.set("latitude", query.latitude);
   url.searchParams.set("longitude", query.longitude);
   url.searchParams.set("date", query.date);
+  if (rememberLocation) {
+    url.searchParams.set("rememberLocation", "true");
+  }
 
   try {
     const response = await fetch(url, {
       cache: "no-store",
       headers: {
         Accept: "application/json",
+        ...(cookieHeader ? { Cookie: cookieHeader } : {}),
       },
     });
     const payload: unknown = await response.json();

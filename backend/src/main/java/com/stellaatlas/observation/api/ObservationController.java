@@ -1,11 +1,15 @@
 package com.stellaatlas.observation.api;
 
+import com.stellaatlas.location.application.RecentLocationService;
 import com.stellaatlas.observation.application.ObservationForecastService;
+import com.stellaatlas.observation.domain.ObservationForecast;
 import com.stellaatlas.observation.domain.ObservationForecastQuery;
+import com.stellaatlas.user.application.AuthenticatedUser;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import java.time.LocalDate;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,13 +23,16 @@ public class ObservationController {
 
     private final ObservationForecastService service;
     private final ObservationResponseMapper mapper;
+    private final RecentLocationService recentLocations;
 
     public ObservationController(
             ObservationForecastService service,
-            ObservationResponseMapper mapper
+            ObservationResponseMapper mapper,
+            RecentLocationService recentLocations
     ) {
         this.service = service;
         this.mapper = mapper;
+        this.recentLocations = recentLocations;
     }
 
     @GetMapping
@@ -40,10 +47,16 @@ public class ObservationController {
             double longitude,
             @RequestParam
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE)
-            LocalDate date
+            LocalDate date,
+            @RequestParam(defaultValue = "false") boolean rememberLocation,
+            @AuthenticationPrincipal AuthenticatedUser user
     ) {
-        return mapper.map(service.getForecast(
+        ObservationForecast forecast = service.getForecast(
                 new ObservationForecastQuery(latitude, longitude, date)
-        ));
+        );
+        if (rememberLocation && user != null) {
+            recentLocations.record(user.userId(), latitude, longitude, forecast.timeZone());
+        }
+        return mapper.map(forecast);
     }
 }

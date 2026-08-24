@@ -15,6 +15,7 @@ import type {
 } from "@/features/planetarium/domain/planetarium";
 import { AstronomyEnginePlanetarium } from "@/features/planetarium/infrastructure/astronomy-engine-planetarium";
 import type { FavoriteLocation } from "@/features/location/types/favorite-location";
+import type { RecentLocation } from "@/features/location/types/recent-location";
 
 const DEFAULT_LATITUDE = "37.5665";
 const DEFAULT_LONGITUDE = "126.9780";
@@ -24,11 +25,15 @@ export function SkySimulator({
   initialFavoriteLocations = [],
   favoriteLocationsEnabled = false,
   favoriteLocationsAvailable = true,
+  initialRecentLocations = [],
+  recentLocationsAvailable = true,
 }: {
   initialObservedAt: string;
   initialFavoriteLocations?: FavoriteLocation[];
   favoriteLocationsEnabled?: boolean;
   favoriteLocationsAvailable?: boolean;
+  initialRecentLocations?: RecentLocation[];
+  recentLocationsAvailable?: boolean;
 }) {
   const engine = useMemo(() => new AstronomyEnginePlanetarium(), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -61,6 +66,14 @@ export function SkySimulator({
     favoriteLocationsAvailable
       ? ""
       : "저장된 위치를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  );
+  const [recentLocations, setRecentLocations] = useState(initialRecentLocations);
+  const [selectedRecentIndex, setSelectedRecentIndex] = useState("");
+  const [recentPending, setRecentPending] = useState(false);
+  const [recentMessage, setRecentMessage] = useState(
+    recentLocationsAvailable
+      ? ""
+      : "최근 위치를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
   );
 
   useEffect(() => {
@@ -206,6 +219,48 @@ export function SkySimulator({
       setFavoriteMessage("위치를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setFavoritePending(false);
+    }
+  }
+
+  function selectRecentLocation(indexValue: string) {
+    setSelectedRecentIndex(indexValue);
+    if (indexValue === "") {
+      return;
+    }
+    const location = recentLocations[Number(indexValue)];
+    if (!location) {
+      return;
+    }
+
+    setLatitude(formatCoordinate(location.latitude));
+    setLongitude(formatCoordinate(location.longitude));
+    updateSceneForCoordinates(
+      location.latitude,
+      location.longitude,
+      `최근 조회 위치 (${location.timezone})의 하늘로 이동했습니다.`,
+    );
+  }
+
+  async function clearRecentLocationHistory() {
+    setRecentPending(true);
+    setRecentMessage("최근 위치 기록을 삭제하고 있습니다.");
+    try {
+      const response = await fetch("/api/recent-locations", { method: "DELETE" });
+      if (response.status !== 204) {
+        setRecentMessage(
+          response.status === 401
+            ? "로그인 세션이 만료되었습니다. 다시 로그인해 주세요."
+            : "최근 위치를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+        return;
+      }
+      setRecentLocations([]);
+      setSelectedRecentIndex("");
+      setRecentMessage("최근 조회 위치를 모두 삭제했습니다.");
+    } catch {
+      setRecentMessage("최근 위치를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setRecentPending(false);
     }
   }
 
@@ -375,6 +430,50 @@ export function SkySimulator({
           )}
         </section>
 
+        {favoriteLocationsEnabled ? (
+          <section className="sky-favorite-panel" aria-labelledby="sky-recent-heading">
+            <div className="sky-favorite-heading">
+              <p className="eyebrow" id="sky-recent-heading">RECENT LOCATIONS</p>
+              <p>저장에 동의했던 최근 조회 좌표를 다시 사용합니다.</p>
+            </div>
+            <label>
+              <span>최근 조회 위치</span>
+              <select
+                value={selectedRecentIndex}
+                onChange={(event) => selectRecentLocation(event.target.value)}
+                disabled={recentPending || recentLocations.length === 0}
+              >
+                <option value="">
+                  {recentLocations.length === 0
+                    ? "최근 위치가 없습니다"
+                    : "위치를 선택하세요"}
+                </option>
+                {recentLocations.map((location, index) => (
+                  <option
+                    key={`${location.latitude}:${location.longitude}:${location.lastQueriedAt}`}
+                    value={index}
+                  >
+                    {location.latitude}, {location.longitude} · {location.timezone}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="sky-favorite-actions">
+              <button
+                className="danger"
+                type="button"
+                onClick={clearRecentLocationHistory}
+                disabled={recentPending || recentLocations.length === 0}
+              >
+                최근 위치 모두 삭제
+              </button>
+            </div>
+            <p className="sky-favorite-message" role="status" aria-live="polite">
+              {recentMessage}
+            </p>
+          </section>
+        ) : null}
+
         <label>
           <span>관측 시각 (UTC)</span>
           <input
@@ -393,7 +492,7 @@ export function SkySimulator({
         </p>
         <p className="sky-privacy-note">
           {favoriteLocationsEnabled
-            ? "좌표는 즐겨찾기 저장 버튼을 누른 경우에만 계정에 저장합니다. 관측 시각은 저장하지 않습니다."
+            ? "즐겨찾기는 직접 저장한 경우에만, 최근 위치는 관측 조회에서 동의한 경우에만 계정에 저장합니다. 관측 시각은 저장하지 않습니다."
             : "좌표와 시각은 이 시뮬레이션 계산에만 사용하며 서버에 저장하지 않습니다."}
         </p>
       </form>

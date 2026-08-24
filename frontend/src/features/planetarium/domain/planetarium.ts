@@ -1,6 +1,9 @@
-export type PlanetariumInput = {
+export type PlanetariumLocation = {
   latitude: number;
   longitude: number;
+};
+
+export type PlanetariumInput = PlanetariumLocation & {
   observedAt: Date;
 };
 

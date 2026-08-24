@@ -66,6 +66,32 @@ describe("ObservationSearchForm", () => {
       screen.getByText("이 브라우저에서는 현재 위치를 사용할 수 없습니다."),
     ).toBeInTheDocument();
   });
+
+  it("reuses saved coordinates and keeps recent storage opt-in", () => {
+    render(
+      <ObservationSearchForm
+        query={{ latitude: "", longitude: "", date: "2026-08-01" }}
+        locationLibraryEnabled
+        favoriteLocations={[{
+          id: "location-1",
+          name: "부산 관측지",
+          latitude: 35.1796,
+          longitude: 129.0756,
+          timezone: "Asia/Seoul",
+          createdAt: "2026-08-24T04:00:00Z",
+        }]}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("즐겨찾기 관측 위치"), {
+      target: { value: "location-1" },
+    });
+
+    expect(screen.getByLabelText("위도")).toHaveValue(35.1796);
+    expect(screen.getByLabelText("경도")).toHaveValue(129.0756);
+    expect(screen.getByRole("checkbox", { name: "이 조회 위치를 최근 위치에 저장" }))
+      .not.toBeChecked();
+  });
 });
 
 function renderForm() {
