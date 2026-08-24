@@ -27,13 +27,13 @@
 | Implemented | 6 | `GET /api/v1/users/me` | 로그인한 사용자 프로필 조회 |
 | Implemented | 6 | `POST /api/v1/auth/logout` | 현재 세션 로그아웃 |
 | Planned support | TBD | `GET /api/v1/locations/search` | 지역명 검색과 좌표·타임존 확인 |
-| Planned user | 7 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
-| Planned user | 7 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
-| Planned user | 7 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
-| Planned user | 7 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
-| Planned user | 7 | `GET /api/v1/users/me/recent-locations` | 최근 조회 위치 목록 |
-| Planned user | 7 | `GET /api/v1/users/me/records` | 관측 기록 목록 |
-| Planned user | 7 | `POST /api/v1/users/me/records` | 관측 기록 생성 |
+| Planned user | 8 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
+| Planned user | 8 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
+| Planned user | 8 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
+| Planned user | 8 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
+| Planned user | 8 | `GET /api/v1/users/me/recent-locations` | 최근 조회 위치 목록 |
+| Planned user | 8 | `GET /api/v1/users/me/records` | 서버 관측 기록 목록 |
+| Planned user | 8 | `POST /api/v1/users/me/records` | 서버 관측 기록 생성 |
 
 `Planned` API는 구현된 계약이 아니며 해당 마일스톤에서 요청·응답, 인증과 오류
 처리를 확정합니다. 날씨와 천문 공급자는 내부 Adapter이므로
@@ -52,7 +52,7 @@ Google OIDC Authorization Code 로그인과 Spring Security의 서버 세션을
 
 Milestone 6은 client와 보안 경계를 구현한 단계입니다. 실제 Google Cloud OAuth
 애플리케이션 등록, 동의 화면, 운영 redirect URI와 내부 사용자 연결은 Milestone
-7에서 완료합니다. 그 전에는 프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인
+8에서 완료합니다. 그 전에는 프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인
 진입 UI를 활성화하지 않습니다.
 
 ```http
@@ -221,7 +221,33 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
 
 ---
 
-## 5. Data Conventions
+## 5. Milestone 7 Local Data Boundary
+
+Milestone 7의 관측 게시물과 사진은 브라우저 IndexedDB에만 저장하므로 신규
+Spring Boot API를 추가하지 않습니다. 로컬 게시물 ID는 브라우저 내부 식별자이며
+공개 API 계약이나 향후 서버 record ID로 사용하지 않습니다.
+
+프런트엔드는 서버 계약과 분리된 versioned local schema를 사용하고 다음 개념을
+보존합니다.
+
+- 이미지 Blob 참조
+- 선택적인 위도·경도
+- 선택적인 RFC 3339 촬영 시각과 IANA timezone
+- 코멘트 원문과 정규화된 해시태그 목록
+- EXIF, 촬영 컨텍스트 또는 사용자 입력의 값 출처
+- 생성·수정 시각과 local schema version
+
+Milestone 8에서 서버 기록을 도입할 때 요청·응답, 인증, multipart 또는 presigned
+upload 방식, 용량 제한, 악성 파일 검사와 로컬 데이터 이전 계약을 별도로
+확정합니다. 브라우저 schema를 그대로 공개 API로 복사하지 않습니다.
+
+천체 관측 시뮬레이션도 Milestone 7에서는 프런트엔드 엔진으로 실행합니다. 기존
+`GET /api/v1/observations`를 플라네타리움 공급자 endpoint로 확장하거나 대규모
+별 카탈로그를 Spring Boot 응답에 포함하지 않습니다.
+
+---
+
+## 6. Data Conventions
 
 ### Date
 
@@ -263,7 +289,7 @@ moonIllumination: 0.18
 
 ---
 
-## 6. Error Response
+## 7. Error Response
 
 ```json
 {
@@ -313,7 +339,7 @@ moonIllumination: 0.18
 
 ---
 
-## 7. HTTP Status Rules
+## 8. HTTP Status Rules
 
 - `200 OK`: 정상 조회
 - `201 Created`: 리소스 생성
@@ -330,9 +356,9 @@ moonIllumination: 0.18
 
 ---
 
-## 8. Pagination
+## 9. Pagination
 
-Milestone 7의 기록 및 최근 위치 목록에는 커서 기반 페이지네이션을 우선
+Milestone 8의 기록 및 최근 위치 목록에는 커서 기반 페이지네이션을 우선
 검토합니다. 아래
 계약은 아직 확정되지 않은 예시입니다.
 
@@ -352,7 +378,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 9. Idempotency
+## 10. Idempotency
 
 결제와 같은 기능이 도입되기 전에는 필수는 아니지만,  
 중복 생성 가능성이 있는 API는 멱등성을 고려합니다.
@@ -361,7 +387,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 10. Versioning
+## 11. Versioning
 
 초기에는 URL 버전을 사용합니다.
 
@@ -373,7 +399,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 11. API Documentation
+## 12. API Documentation
 
 Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정책에 따라
 결정합니다.
@@ -383,7 +409,7 @@ Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정
 
 ---
 
-## 12. API Review Checklist
+## 13. API Review Checklist
 
 - 입력 검증이 있는가?
 - 타임존이 명확한가?

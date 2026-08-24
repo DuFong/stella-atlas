@@ -93,7 +93,13 @@ export function HomeContent({
             <span>StellaAtlas</span>
           </Link>
           <div className="nav-actions">
-            <span className="milestone-badge">Milestone 6</span>
+            <Link className="nav-link" href="/journal">
+              관측 기록
+            </Link>
+            <Link className="nav-link" href="/sky">
+              밤하늘 시뮬레이션
+            </Link>
+            <span className="milestone-badge">Milestone 7</span>
             <AccountMenu session={session} />
           </div>
         </nav>
@@ -102,7 +108,7 @@ export function HomeContent({
           <p className="auth-notice" role="alert">
             {authNotice === "logout-error"
               ? "로그아웃을 완료하지 못했습니다. 잠시 후 다시 시도해 주세요."
-              : "Google 로그인은 Milestone 7에서 OAuth 등록 후 활성화됩니다."}
+              : "Google 로그인은 Milestone 8에서 OAuth 등록 후 활성화됩니다."}
           </p>
         ) : null}
 
@@ -133,6 +139,56 @@ export function HomeContent({
       </section>
 
       {result?.ok ? <ObservationDetails forecast={result.data} /> : null}
+
+      <section className="explore-section" aria-labelledby="explore-heading">
+        <div className="section-heading explore-heading">
+          <p className="eyebrow dark">EXPLORE &amp; REMEMBER</p>
+          <h2 id="explore-heading">관측 전에는 미리 보고, 관측 후에는 남겨보세요.</h2>
+          <p>
+            관측 조건을 확인한 다음 밤하늘을 탐색하거나, 직접 만난 순간을 사진과
+            함께 이 기기에 기록할 수 있습니다.
+          </p>
+        </div>
+
+        <div className="feature-entry-grid">
+          <Link className="feature-entry-card sky-entry-card" href="/sky">
+            <div className="feature-entry-visual sky-entry-visual" aria-hidden="true">
+              <span className="sky-entry-moon" />
+              <span className="sky-entry-orbit orbit-one" />
+              <span className="sky-entry-orbit orbit-two" />
+              <span className="sky-entry-star star-one">✦</span>
+              <span className="sky-entry-star star-two">·</span>
+              <span className="sky-entry-direction">N</span>
+            </div>
+            <div className="feature-entry-copy">
+              <p>INTERACTIVE SKY</p>
+              <h3>오늘 밤하늘을 먼저 둘러보세요.</h3>
+              <span>
+                위치와 시각을 바꾸며 별과 행성 찾기
+                <strong aria-hidden="true">→</strong>
+              </span>
+            </div>
+          </Link>
+
+          <Link className="feature-entry-card journal-entry-card" href="/journal">
+            <div className="feature-entry-visual journal-entry-visual" aria-hidden="true">
+              <span className="journal-photo-back" />
+              <span className="journal-photo-front">
+                <i>✦</i>
+              </span>
+              <span className="journal-entry-tag">#오늘의하늘</span>
+            </div>
+            <div className="feature-entry-copy">
+              <p>LOCAL JOURNAL</p>
+              <h3>관측의 순간을 사진으로 남겨보세요.</h3>
+              <span>
+                사진과 코멘트를 이 브라우저에 기록하기
+                <strong aria-hidden="true">→</strong>
+              </span>
+            </div>
+          </Link>
+        </div>
+      </section>
 
       <section className="process-section" aria-labelledby="process-heading">
         <div className="section-heading">
