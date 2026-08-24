@@ -1051,11 +1051,10 @@ Notes
 ## Active Milestone
 
 ```text
-No active implementation milestone
+Milestone 8 — OAuth Integration and Location Library
 ```
 
-Status: Milestone 7 is complete. Milestone 8 is planned but has not been
-explicitly started.
+Status: Milestone 7 is complete. Milestone 8 started on 2026-08-07.
 
 ## Most Recently Completed Milestone Goal
 
@@ -1071,34 +1070,35 @@ dependencies.
 
 Allowed work:
 
-- fixes to the completed authentication foundation;
-- documentation and verification needed to close Milestone 7;
+- Google OAuth local callback verification and environment configuration;
+- internal user persistence and Google provider identity mapping;
+- favorite observation locations and recent queried location history;
+- authenticated server observation record metadata after its API and storage
+  policy are documented;
 - fixes to the completed local journal and interactive sky simulation;
-- preparation that does not implement Milestone 8 product behavior.
+- documentation and verification required by Milestone 8.
 
-Out of scope until Milestone 8 is explicitly started:
+Out of scope during Milestone 8 unless separately approved:
 
-- Google Cloud OAuth consent screen and client registration;
-- internal user persistence and provider identity mapping;
-- favorite observation locations;
-- recent queried location history;
-- server-side observation record or media persistence;
+- server media persistence before storage, upload, validation and migration
+  policies are approved;
 - social networking and community features;
 - notifications and personalized recommendations;
 - public provider-oriented weather or astronomy endpoints;
 - production deployment.
 
-## Milestone 7 Completion Criteria
+## Milestone 8 Completion Criteria
 
-- image upload and supported-device camera capture create editable local posts;
-- EXIF time and GPS are proposed when present and missing metadata remains blank;
-- metadata and image Blob changes are atomic in the versioned IndexedDB adapter;
-- local posts support list, detail, update, and delete flows with privacy notice;
-- camera, location, metadata, storage, and Canvas failure states are explicit;
-- the sky simulator supports deterministic time, direction, zoom, object, and
-  constellation rendering behind a replaceable engine port;
-- runtime dependencies and distribution obligations are documented;
-- frontend lint, type-check, tests, and production build pass.
+- local Google OAuth login and callback are verified without committing secrets;
+- Google identities map to stable internal user UUIDs;
+- favorite locations support authenticated create, read and delete flows;
+- recent locations have an explicit retention limit and authenticated listing;
+- every user resource query enforces ownership and location data minimization;
+- server observation record metadata has a documented contract and authenticated
+  create and list flows;
+- server media storage and local-post migration remain deferred until their
+  policies are approved;
+- relevant backend and frontend verification commands pass.
 
 ---
 

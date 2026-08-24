@@ -22,7 +22,7 @@
 | Implemented | 1 | `GET /actuator/health` | 애플리케이션과 의존 서비스 상태 |
 | Implemented | 1 | `GET /actuator/info` | 빌드 및 애플리케이션 정보 확장 지점 |
 | Implemented | 5 | `GET /api/v1/observations` | 위치와 날짜의 통합 관측 예보 |
-| Foundation | 6 | `GET /oauth2/authorization/google` | OAuth profile의 Google OIDC 로그인 시작 |
+| Implemented | 8 | `GET /oauth2/authorization/google` | 검증된 Google OIDC 로그인 시작 |
 | Implemented | 6 | `GET /api/v1/auth/csrf` | 상태 변경 요청용 CSRF token 발급 |
 | Implemented | 6 | `GET /api/v1/users/me` | 로그인한 사용자 프로필 조회 |
 | Implemented | 6 | `POST /api/v1/auth/logout` | 현재 세션 로그아웃 |
@@ -44,16 +44,18 @@
 
 ## 3. Authentication and Current User API
 
-Status: Authentication foundation implemented in Milestone 6.
+Status: Authentication foundation implemented in Milestone 6; local Google
+OAuth callback verified and internal user mapping implemented in Milestone 8.
 
 Google OIDC Authorization Code 로그인과 Spring Security의 서버 세션을
 사용합니다. 로그인 시작 endpoint는 브라우저를 Google로 redirect하고, callback
 성공 후 설정된 프런트엔드 주소로 돌아옵니다.
 
-Milestone 6은 client와 보안 경계를 구현한 단계입니다. 실제 Google Cloud OAuth
-애플리케이션 등록, 동의 화면, 운영 redirect URI와 내부 사용자 연결은 Milestone
-8에서 완료합니다. 그 전에는 프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인
-진입 UI를 활성화하지 않습니다.
+Milestone 6은 client와 보안 경계를 구현한 단계입니다. Milestone 8에서 실제
+Google Cloud OAuth 애플리케이션의 로컬 callback을 검증하고 Google identity를
+안정적인 내부 사용자 UUID에 연결했습니다. callback을 검증하지 않은 환경에서는
+프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인 진입 UI를 활성화하지
+않습니다.
 
 ```http
 GET /oauth2/authorization/google
@@ -78,7 +80,8 @@ GET /api/v1/users/me
 ```
 
 외부 provider subject, OAuth access token과 session identifier는 응답에
-포함하지 않습니다.
+포함하지 않습니다. 로그인할 때 `(provider, subject)` mapping과 사용자 프로필을
+서버에 저장하며, 같은 identity의 재로그인은 기존 내부 UUID를 재사용합니다.
 
 ### Logout
 

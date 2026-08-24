@@ -24,6 +24,8 @@
 - Google OIDC login and Spring Security session foundation.
 - Authenticated current-user API with JSON authentication errors and CSRF protection.
 - Responsive Google login, current-user, and session logout frontend UI.
+- Verified the local Google OAuth callback with environment-injected credentials.
+- Persisted Google identities against stable internal user UUIDs.
 - MIT-licensed Astronomy Engine integration behind a planetarium domain port.
 - Client-side Canvas sky simulation with time, direction, zoom, and location controls.
 - Curated bright-star and representative-constellation data with deterministic scene tests.

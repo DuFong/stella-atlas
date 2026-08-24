@@ -5,10 +5,10 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-**Milestone 7 — Observation Journal and Sky Simulation**을 완료했습니다.
-비로그인 관측 조회에 사진 기반 로컬 관측 기록과 대화형 밤하늘 시뮬레이션을
-추가했습니다. 실제 Google OAuth 애플리케이션 등록과 즐겨찾기·최근 조회 위치
-기능은 Milestone 8에서 진행합니다.
+**Milestone 8 — OAuth Integration and Location Library**를 시작했습니다.
+Milestone 7에서 완성한 사진 기반 로컬 관측 기록과 대화형 밤하늘 시뮬레이션을
+유지하면서, 실제 Google OAuth 연결과 내부 사용자 UUID, 즐겨찾기·최근 조회 위치를
+순서대로 구현합니다.
 
 ## Technology
 
@@ -75,9 +75,10 @@ cd backend
 있습니다. PostgreSQL 연결 정보는 루트 `.env.example`과
 `backend/src/main/resources/application.yml`을 기준으로 합니다.
 
-Milestone 6의 Google 로그인 기반은 OAuth 프로필에서만 활성화됩니다. 실제
-Google Cloud Console 등록과 운영 연결은 Milestone 8 범위이며, 연동할 때 OAuth
-클라이언트에 다음 로컬 redirect URI를 등록합니다.
+Milestone 6의 Google 로그인 기반은 OAuth 프로필에서만 활성화됩니다. Milestone
+8에서 Google Cloud Console 등록값으로 로컬 callback을 검증했으며, 로그인한
+Google identity는 안정적인 내부 사용자 UUID에 연결됩니다. OAuth 클라이언트에
+다음 로컬 redirect URI를 등록합니다.
 
 ```text
 http://localhost:8080/login/oauth2/code/google
@@ -101,9 +102,8 @@ API는 사용할 수 있지만 로그인 시작 endpoint는 활성화되지 않�
 프런트엔드의 `Google로 로그인` 버튼은 `/auth/login` Route Handler를 통해 이
 로그인 흐름을 시작합니다. 로그인 후에는 사용자 이름과 로그아웃 버튼을 표시하며,
 로그아웃 Route Handler가 CSRF token과 backend session cookie를 전달합니다.
-Milestone 8의 Google OAuth 등록 전에는 `AUTH_ENABLED=false`를 유지해 버튼을
-준비 중 상태로 표시하고, 실제 client 설정과 callback 검증 후 `true`로
-전환합니다.
+Google OAuth client 설정과 callback 검증 전에는 `AUTH_ENABLED=false`를 유지해
+버튼을 준비 중 상태로 표시하고, 검증한 로컬 환경에서만 `true`로 전환합니다.
 
 통합 관측 결과는 다음 API에서 확인할 수 있습니다.
 

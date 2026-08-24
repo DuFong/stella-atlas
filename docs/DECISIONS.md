@@ -578,3 +578,40 @@ sky-culture 파생 번역과 서로 다른 출처가 섞여 있어 코드 라이
 - 렌더러와 catalog의 정확도, 모바일 성능과 접근성을 프로젝트가 직접 검증하고
   유지해야 합니다.
 - 백엔드와 `application.yml` 변경은 필요하지 않습니다.
+
+---
+
+## ADR-020 — Stable Internal Users Separated from OAuth Identities
+
+- Status: Accepted
+- Date: 2026-08-24
+
+### Context
+
+Milestone 8의 즐겨찾기 위치, 최근 조회 위치와 서버 관측 기록은 provider에
+종속되지 않는 안정적인 소유자 식별자가 필요합니다. Google의 OIDC `sub`는 해당
+provider 안에서는 안정적이지만 내부 리소스의 공개 또는 영속 식별자로 직접
+사용하면 provider 교체와 계정 연결 확장이 어려워집니다.
+
+### Decision
+
+- 내부 사용자는 애플리케이션이 생성한 UUID로 식별합니다.
+- `user_account`는 내부 UUID와 최신 표시 이름, 이메일, 사진 URL 및 생성·수정
+  시각을 저장합니다.
+- `oauth_identity`는 `(provider, provider_subject)`와 내부 사용자 UUID의 연결을
+  저장하며 두 외부 식별자의 조합을 유일하게 제한합니다.
+- Google 로그인 성공 시 identity가 없으면 내부 사용자를 생성하고, 이미 있으면
+  같은 UUID를 재사용하면서 변경 가능한 프로필 claim만 갱신합니다.
+- 외부 subject, 내부 UUID, access token과 session identifier는 현재 사용자 공개
+  응답에 포함하지 않습니다.
+- OAuth access token과 refresh token은 현재 기능에 필요하지 않으므로 데이터베이스에
+  저장하지 않습니다.
+
+### Consequences
+
+- 사용자 소유 리소스는 Google subject 대신 내부 UUID를 foreign key로 참조할 수
+  있습니다.
+- 같은 provider identity가 중복 내부 사용자로 연결되는 것을 데이터베이스
+  constraint가 방지합니다.
+- 여러 provider 계정 연결, 계정 병합과 탈퇴·보존 정책은 별도 사용자 흐름과
+  정책이 승인될 때 추가해야 합니다.

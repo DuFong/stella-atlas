@@ -188,8 +188,11 @@ OAuth profile이 활성화되지 않은 로컬 실행에서는 Google client reg
 보호를 적용하고, 단일 인스턴스 메모리 세션을 다중 인스턴스 운영으로 확장하기
 전 공유 세션 저장소를 다시 결정합니다.
 
-Google Cloud OAuth 애플리케이션 등록, 실제 로그인 callback 검증과 provider
-계정을 내부 사용자 UUID에 연결하는 영속화는 Milestone 8에서 진행합니다.
+Milestone 8에서 Google Cloud OAuth 애플리케이션의 로컬 callback을 검증했습니다.
+로그인 시 `(provider, subject)` identity를 내부 사용자 UUID에 연결하고, 외부
+identity와 사용자 프로필을 분리된 PostgreSQL 테이블에 저장합니다. 재로그인 시
+내부 UUID는 유지하고 표시 이름, 이메일과 사진 URL만 최신 OIDC claim으로
+갱신합니다.
 
 ### record
 
@@ -473,6 +476,10 @@ Redis는 다중 인스턴스 운영 또는 공유 캐시 필요성이 확인된 
 - observation_record
 - favorite_object
 - provider_request_log 또는 집계 메트릭
+
+Milestone 8의 첫 사용자 schema는 `user_account`와 `oauth_identity`를 분리합니다.
+`oauth_identity(provider, provider_subject)`가 외부 계정의 유일 키이며 내부
+리소스 소유권은 provider subject가 아니라 `user_account.id` UUID를 참조합니다.
 
 Milestone 7의 관측 게시물은 PostgreSQL이 아니라 현재 브라우저의 IndexedDB에만
 저장합니다. 이 저장소는 임시·기기 종속 저장소이며 서버 백업으로 간주하지
