@@ -16,7 +16,7 @@ export default function JournalPage() {
           <span>StellaAtlas</span>
         </Link>
         <div className="nav-actions">
-          <span className="milestone-badge">Milestone 7</span>
+          <span className="milestone-badge">Milestone 8</span>
           <Link className="nav-link" href="/sky">밤하늘 시뮬레이션</Link>
           <Link className="nav-link" href="/">관측 조건</Link>
         </div>

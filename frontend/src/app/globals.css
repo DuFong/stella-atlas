@@ -1673,7 +1673,8 @@ textarea {
   font-weight: 700;
 }
 
-.sky-control-panel input {
+.sky-control-panel input,
+.sky-control-panel select {
   width: 100%;
   min-height: 46px;
   border: 1px solid rgb(255 255 255 / 14%);
@@ -1685,15 +1686,84 @@ textarea {
   color-scheme: dark;
 }
 
-.sky-control-panel input:focus-visible {
+.sky-control-panel input:focus-visible,
+.sky-control-panel select:focus-visible {
   border-color: var(--lime-300);
   box-shadow: 0 0 0 3px rgb(200 243 106 / 14%);
+}
+
+.sky-control-panel select:disabled,
+.sky-control-panel input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .sky-coordinate-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.sky-favorite-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgb(200 243 106 / 14%);
+  border-radius: 16px;
+  padding: 15px;
+  background: rgb(200 243 106 / 4%);
+}
+
+.sky-favorite-heading {
+  display: grid;
+  gap: 6px;
+}
+
+.sky-favorite-heading .eyebrow,
+.sky-favorite-heading p,
+.sky-favorite-message,
+.sky-favorite-login-note {
+  margin: 0;
+}
+
+.sky-favorite-heading > p:last-child,
+.sky-favorite-message,
+.sky-favorite-login-note {
+  color: rgb(255 255 255 / 52%);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.sky-favorite-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sky-favorite-actions button {
+  min-height: 40px;
+  border: 1px solid rgb(145 201 255 / 22%);
+  border-radius: 10px;
+  background: rgb(145 201 255 / 8%);
+  color: var(--sky-300);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.sky-favorite-actions button.danger {
+  border-color: rgb(255 143 143 / 20%);
+  background: rgb(255 143 143 / 7%);
+  color: #ffb0b0;
+}
+
+.sky-favorite-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.sky-favorite-actions button:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
 }
 
 .sky-location-button,

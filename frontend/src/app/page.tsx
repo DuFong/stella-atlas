@@ -99,7 +99,7 @@ export function HomeContent({
             <Link className="nav-link" href="/sky">
               밤하늘 시뮬레이션
             </Link>
-            <span className="milestone-badge">Milestone 7</span>
+            <span className="milestone-badge">Milestone 8</span>
             <AccountMenu session={session} />
           </div>
         </nav>

@@ -179,6 +179,12 @@ Milestone 8에서 즐겨찾기 위치와 최근 조회 위치를 인증된 내�
 저장합니다. 상세 조회와 삭제는 항상 location ID와 owner UUID를 함께 조건으로
 사용해 다른 사용자의 위치 존재 여부를 노출하지 않습니다.
 
+프런트엔드 `/sky`는 서버 렌더링 시 현재 session cookie를 backend에 전달해 초기
+즐겨찾기 목록을 가져옵니다. 브라우저의 저장·삭제 요청은 같은 origin의 Next.js
+Route Handler를 거치며 handler가 backend CSRF token과 session cookie를
+전달합니다. 사용자가 저장을 명시한 좌표만 서버로 보내고 시뮬레이션 시각은
+즐겨찾기 payload에 포함하지 않습니다.
+
 ### user
 
 사용자 및 인증을 담당합니다.

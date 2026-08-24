@@ -27,6 +27,7 @@
 - Verified the local Google OAuth callback with environment-injected credentials.
 - Persisted Google identities against stable internal user UUIDs.
 - Added authenticated favorite-location create, read, and delete APIs with owner-scoped persistence.
+- Connected the sky simulator to authenticated favorite-location save, select, and delete flows.
 - MIT-licensed Astronomy Engine integration behind a planetarium domain port.
 - Client-side Canvas sky simulation with time, direction, zoom, and location controls.
 - Curated bright-star and representative-constellation data with deterministic scene tests.
