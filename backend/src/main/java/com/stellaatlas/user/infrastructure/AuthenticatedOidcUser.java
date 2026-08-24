@@ -1,5 +1,6 @@
 package com.stellaatlas.user.infrastructure;
 
+import com.stellaatlas.user.application.AuthenticatedUser;
 import java.util.Collection;
 import java.util.Map;
 import java.util.UUID;
@@ -8,7 +9,7 @@ import org.springframework.security.oauth2.core.oidc.OidcIdToken;
 import org.springframework.security.oauth2.core.oidc.OidcUserInfo;
 import org.springframework.security.oauth2.core.oidc.user.OidcUser;
 
-public final class AuthenticatedOidcUser implements OidcUser {
+public final class AuthenticatedOidcUser implements OidcUser, AuthenticatedUser {
 
     private final UUID userId;
     private final OidcUser delegate;
@@ -18,7 +19,8 @@ public final class AuthenticatedOidcUser implements OidcUser {
         this.delegate = delegate;
     }
 
-    public UUID getUserId() {
+    @Override
+    public UUID userId() {
         return userId;
     }
 

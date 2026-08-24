@@ -27,10 +27,10 @@
 | Implemented | 6 | `GET /api/v1/users/me` | 로그인한 사용자 프로필 조회 |
 | Implemented | 6 | `POST /api/v1/auth/logout` | 현재 세션 로그아웃 |
 | Planned support | TBD | `GET /api/v1/locations/search` | 지역명 검색과 좌표·타임존 확인 |
-| Planned user | 8 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
-| Planned user | 8 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
-| Planned user | 8 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
-| Planned user | 8 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
+| Implemented | 8 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
+| Implemented | 8 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
+| Implemented | 8 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
+| Implemented | 8 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
 | Planned user | 8 | `GET /api/v1/users/me/recent-locations` | 최근 조회 위치 목록 |
 | Planned user | 8 | `GET /api/v1/users/me/records` | 서버 관측 기록 목록 |
 | Planned user | 8 | `POST /api/v1/users/me/records` | 서버 관측 기록 생성 |
@@ -108,7 +108,70 @@ POST /api/v1/auth/logout
 
 ---
 
-## 4. Observation Forecast API
+## 4. Favorite Location API
+
+Status: Implemented in Milestone 8.
+
+모든 endpoint는 인증이 필요합니다. 목록·상세·삭제 query는 현재 내부 사용자
+UUID로 제한하며, 다른 사용자의 location ID를 요청해도 동일한
+`404 LOCATION_NOT_FOUND`를 반환합니다.
+
+### Create
+
+```http
+POST /api/v1/users/me/locations
+Content-Type: application/json
+X-CSRF-TOKEN: ...
+```
+
+```json
+{
+  "name": "서울 천문대",
+  "latitude": 37.5665,
+  "longitude": 126.978
+}
+```
+
+- `name`은 공백이 아닌 1~100자입니다.
+- 좌표는 위도 -90~90, 경도 -180~180이며 소수점 이하 최대 6자리입니다.
+- timezone은 클라이언트 입력을 신뢰하지 않고 서버가 좌표로 결정합니다.
+- 사용자가 명시적으로 즐겨찾기를 생성한 경우에만 정확한 좌표를 저장합니다.
+
+성공 시 `201 Created`와 생성된 위치를 반환합니다.
+
+```json
+{
+  "id": "30000000-0000-0000-0000-000000000003",
+  "name": "서울 천문대",
+  "latitude": 37.566500,
+  "longitude": 126.978000,
+  "timezone": "Asia/Seoul",
+  "createdAt": "2026-08-24T04:00:00Z"
+}
+```
+
+### List and detail
+
+```http
+GET /api/v1/users/me/locations
+GET /api/v1/users/me/locations/{locationId}
+```
+
+목록은 생성시각과 ID의 오름차순으로 반환합니다. 목록 응답은 위 response 객체의
+배열이며 저장된 위치가 없으면 빈 배열입니다.
+
+### Delete
+
+```http
+DELETE /api/v1/users/me/locations/{locationId}
+X-CSRF-TOKEN: ...
+```
+
+성공 시 `204 No Content`를 반환합니다.
+
+---
+
+## 5. Observation Forecast API
 
 Status: Implemented in Milestone 5.
 
@@ -224,7 +287,7 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
 
 ---
 
-## 5. Milestone 7 Local Data Boundary
+## 6. Milestone 7 Local Data Boundary
 
 Milestone 7의 관측 게시물과 사진은 브라우저 IndexedDB에만 저장하므로 신규
 Spring Boot API를 추가하지 않습니다. 로컬 게시물 ID는 브라우저 내부 식별자이며
@@ -250,7 +313,7 @@ upload 방식, 용량 제한, 악성 파일 검사와 로컬 데이터 이전 �
 
 ---
 
-## 6. Data Conventions
+## 7. Data Conventions
 
 ### Date
 
@@ -292,7 +355,7 @@ moonIllumination: 0.18
 
 ---
 
-## 7. Error Response
+## 8. Error Response
 
 ```json
 {
@@ -331,6 +394,7 @@ moonIllumination: 0.18
 | 400 | UNSUPPORTED_DATE | 지원하지 않는 날짜 |
 | 401 | UNAUTHORIZED | 인증 필요 |
 | 403 | FORBIDDEN | 권한 없음 |
+| 404 | LOCATION_NOT_FOUND | 현재 사용자가 소유한 저장 위치 없음 |
 | 404 | RESOURCE_NOT_FOUND | 리소스 없음 |
 | 429 | RATE_LIMIT_EXCEEDED | 호출 제한 초과 |
 | 502 | EXTERNAL_PROVIDER_ERROR | 외부 공급자 오류 |
@@ -342,7 +406,7 @@ moonIllumination: 0.18
 
 ---
 
-## 8. HTTP Status Rules
+## 9. HTTP Status Rules
 
 - `200 OK`: 정상 조회
 - `201 Created`: 리소스 생성
@@ -359,7 +423,7 @@ moonIllumination: 0.18
 
 ---
 
-## 9. Pagination
+## 10. Pagination
 
 Milestone 8의 기록 및 최근 위치 목록에는 커서 기반 페이지네이션을 우선
 검토합니다. 아래
@@ -381,7 +445,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 10. Idempotency
+## 11. Idempotency
 
 결제와 같은 기능이 도입되기 전에는 필수는 아니지만,  
 중복 생성 가능성이 있는 API는 멱등성을 고려합니다.
@@ -390,7 +454,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 11. Versioning
+## 12. Versioning
 
 초기에는 URL 버전을 사용합니다.
 
@@ -402,7 +466,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 12. API Documentation
+## 13. API Documentation
 
 Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정책에 따라
 결정합니다.
@@ -412,7 +476,7 @@ Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정
 
 ---
 
-## 13. API Review Checklist
+## 14. API Review Checklist
 
 - 입력 검증이 있는가?
 - 타임존이 명확한가?
