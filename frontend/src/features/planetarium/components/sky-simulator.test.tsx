@@ -1,5 +1,5 @@
-import { render, screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { SkySimulator } from "./sky-simulator";
 
 describe("SkySimulator", () => {
@@ -20,6 +20,11 @@ describe("SkySimulator", () => {
       lineTo: vi.fn(),
       fillText: vi.fn(),
     } as unknown as CanvasRenderingContext2D);
+  });
+
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
   });
 
   it("renders deterministic controls and an accessible sky summary", () => {
@@ -48,5 +53,101 @@ describe("SkySimulator", () => {
     expect(
       await screen.findByText(/Canvas 2D 밤하늘 지도를 표시할 수 없습니다/),
     ).toBeInTheDocument();
+  });
+
+  it("loads a saved location into the sky controls", () => {
+    render(
+      <SkySimulator
+        initialObservedAt="2026-08-05T13:00:00Z"
+        favoriteLocationsEnabled
+        initialFavoriteLocations={[
+          {
+            id: "location-1",
+            name: "부산 관측지",
+            latitude: 35.1796,
+            longitude: 129.0756,
+            timezone: "Asia/Seoul",
+            createdAt: "2026-08-24T04:00:00Z",
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("저장된 관측 위치"), {
+      target: { value: "location-1" },
+    });
+
+    expect(screen.getByLabelText("위도")).toHaveValue(35.1796);
+    expect(screen.getByLabelText("경도")).toHaveValue(129.0756);
+    expect(screen.getByText("부산 관측지 위치의 하늘로 이동했습니다.")).toBeInTheDocument();
+  });
+
+  it("saves the current coordinates as a favorite location", async () => {
+    const savedLocation = {
+      id: "location-2",
+      name: "서울 천문대",
+      latitude: 37.5665,
+      longitude: 126.978,
+      timezone: "Asia/Seoul",
+      createdAt: "2026-08-24T04:00:00Z",
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(savedLocation), {
+        status: 201,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <SkySimulator
+        initialObservedAt="2026-08-05T13:00:00Z"
+        favoriteLocationsEnabled
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("새 즐겨찾기 이름"), {
+      target: { value: "서울 천문대" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "현재 좌표 저장" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("서울 천문대 위치를 즐겨찾기에 저장했습니다.")).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/favorite-locations",
+      expect.objectContaining({ method: "POST" }),
+    );
+    expect(screen.getByRole("option", { name: "서울 천문대 · Asia/Seoul" })).toBeInTheDocument();
+  });
+
+  it("loads and clears recent queried locations", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+    render(
+      <SkySimulator
+        initialObservedAt="2026-08-05T13:00:00Z"
+        favoriteLocationsEnabled
+        initialRecentLocations={[{
+          latitude: 35.1796,
+          longitude: 129.0756,
+          timezone: "Asia/Seoul",
+          lastQueriedAt: "2026-08-24T04:00:00Z",
+        }]}
+      />,
+    );
+
+    fireEvent.change(screen.getByLabelText("최근 조회 위치"), {
+      target: { value: "0" },
+    });
+    expect(screen.getByLabelText("위도")).toHaveValue(35.1796);
+
+    fireEvent.click(screen.getByRole("button", { name: "최근 위치 모두 삭제" }));
+    await waitFor(() => {
+      expect(screen.getByText("최근 조회 위치를 모두 삭제했습니다.")).toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/recent-locations",
+      { method: "DELETE" },
+    );
   });
 });

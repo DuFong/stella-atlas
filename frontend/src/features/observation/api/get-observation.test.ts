@@ -53,6 +53,35 @@ describe("getObservation", () => {
     );
   });
 
+  it("forwards authentication and explicit recent-location consent", async () => {
+    vi.stubEnv("API_BASE_URL", "http://localhost:8080");
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          location: { timezone: "Asia/Seoul" },
+          date: "2026-08-01",
+          summary: { score: 90, grade: "EXCELLENT" },
+          astronomy: { moonIllumination: 0.2 },
+          hourly: [],
+          generatedAt: "2026-08-01T10:00:00Z",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await getObservation(query, "JSESSIONID=session-value", true);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      new URL(
+        "http://localhost:8080/api/v1/observations?latitude=37.5665&longitude=126.978&date=2026-08-01&rememberLocation=true",
+      ),
+      expect.objectContaining({
+        headers: expect.objectContaining({ Cookie: "JSESSIONID=session-value" }),
+      }),
+    );
+  });
+
   it("returns the safe backend error contract for expected failures", async () => {
     vi.stubGlobal(
       "fetch",

@@ -172,7 +172,20 @@ Google Cloud 등록과 실제 계정 callback 검증은 Milestone 8에서 진행
 Milestone 8에서 즐겨찾기 위치와 최근 조회 위치를 인증된 내부 사용자 UUID에
 귀속합니다. 모든 조회는 소유자 범위로 제한하고, 정확한 좌표는 사용자가
 명시적으로 즐겨찾기를 저장하거나 최근 위치 기록에 동의한 경우에만
-영구 저장합니다. 최근 위치에는 개수 또는 보존 기간 제한을 둡니다.
+영구 저장합니다. 최근 위치는 소수점 이하 4자리로 반올림하고 사용자별 최신
+10개만 유지하며, 클라이언트에는 내부 ID를 노출하지 않습니다. 사용자는 최근
+위치 전체를 삭제할 수 있습니다.
+
+즐겨찾기 위치는 `favorite_location`에 내부 사용자 UUID, 사용자 지정 이름,
+소수점 이하 최대 6자리 좌표, 서버가 해석한 IANA timezone과 생성시각을
+저장합니다. 상세 조회와 삭제는 항상 location ID와 owner UUID를 함께 조건으로
+사용해 다른 사용자의 위치 존재 여부를 노출하지 않습니다.
+
+프런트엔드 홈과 `/sky`는 서버 렌더링 시 현재 session cookie를 backend에 전달해
+초기 즐겨찾기·최근 위치 목록을 가져옵니다. 브라우저의 저장·삭제 요청은 같은 origin의 Next.js
+Route Handler를 거치며 handler가 backend CSRF token과 session cookie를
+전달합니다. 사용자가 저장을 명시한 좌표만 서버로 보내고 시뮬레이션 시각은
+즐겨찾기 payload에 포함하지 않습니다.
 
 ### user
 
@@ -188,20 +201,29 @@ OAuth profile이 활성화되지 않은 로컬 실행에서는 Google client reg
 보호를 적용하고, 단일 인스턴스 메모리 세션을 다중 인스턴스 운영으로 확장하기
 전 공유 세션 저장소를 다시 결정합니다.
 
-Google Cloud OAuth 애플리케이션 등록, 실제 로그인 callback 검증과 provider
-계정을 내부 사용자 UUID에 연결하는 영속화는 Milestone 8에서 진행합니다.
+Milestone 8에서 Google Cloud OAuth 애플리케이션의 로컬 callback을 검증했습니다.
+로그인 시 `(provider, subject)` identity를 내부 사용자 UUID에 연결하고, 외부
+identity와 사용자 프로필을 분리된 PostgreSQL 테이블에 저장합니다. 재로그인 시
+내부 UUID는 유지하고 표시 이름, 이메일과 사진 URL만 최신 OIDC claim으로
+갱신합니다.
 
 ### record
 
 사진과 코멘트가 포함된 관측 게시물을 관리합니다.
 
-Milestone 7은 프런트엔드의 로컬 기능으로 구현했습니다. 게시물 metadata와 이미지
+Milestone 7의 사진 게시물은 프런트엔드 로컬 기능으로 유지합니다. 게시물 metadata와 이미지
 Blob은 IndexedDB에 저장하고, `ObservationPostRepository`와 `MediaStore`
 애플리케이션 port가 브라우저 API를 직접 감쌉니다. UI와 도메인 모델은 IndexedDB
-key나 object store 구조를 알지 않습니다. Milestone 8 이후 서버 저장소를 추가할
-때 같은 port의 remote adapter 또는 local/remote 동기화 adapter를 구현합니다.
-현재 `IndexedDbObservationJournal` adapter가 metadata와 Blob 변경을 하나의
+key나 object store 구조를 알지 않습니다. Milestone 8은 별도의
+`observation_record`에 관측 시각, IANA timezone, 선택적 좌표와 최대 500자
+코멘트만 저장합니다. 해시태그는 응답 시 코멘트에서 결정적으로 추출하며
+`mediaStatus`는 `NOT_ATTACHED`로 고정합니다. 현재
+`IndexedDbObservationJournal` adapter가 metadata와 Blob 변경을 하나의
 read-write transaction으로 처리합니다.
+
+서버 기록과 로컬 게시물은 자동 연결하지 않습니다. 서버 미디어를 도입하려면
+object storage, 업로드·검사·삭제 정책과 명시적인 local-to-remote migration을
+먼저 승인하고 remote 또는 동기화 adapter를 추가해야 합니다.
 
 주요 책임:
 
@@ -473,6 +495,10 @@ Redis는 다중 인스턴스 운영 또는 공유 캐시 필요성이 확인된 
 - observation_record
 - favorite_object
 - provider_request_log 또는 집계 메트릭
+
+Milestone 8의 첫 사용자 schema는 `user_account`와 `oauth_identity`를 분리합니다.
+`oauth_identity(provider, provider_subject)`가 외부 계정의 유일 키이며 내부
+리소스 소유권은 provider subject가 아니라 `user_account.id` UUID를 참조합니다.
 
 Milestone 7의 관측 게시물은 PostgreSQL이 아니라 현재 브라우저의 IndexedDB에만
 저장합니다. 이 저장소는 임시·기기 종속 저장소이며 서버 백업으로 간주하지

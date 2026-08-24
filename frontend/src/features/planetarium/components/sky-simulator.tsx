@@ -14,14 +14,26 @@ import type {
   SkyObject,
 } from "@/features/planetarium/domain/planetarium";
 import { AstronomyEnginePlanetarium } from "@/features/planetarium/infrastructure/astronomy-engine-planetarium";
+import type { FavoriteLocation } from "@/features/location/types/favorite-location";
+import type { RecentLocation } from "@/features/location/types/recent-location";
 
 const DEFAULT_LATITUDE = "37.5665";
 const DEFAULT_LONGITUDE = "126.9780";
 
 export function SkySimulator({
   initialObservedAt,
+  initialFavoriteLocations = [],
+  favoriteLocationsEnabled = false,
+  favoriteLocationsAvailable = true,
+  initialRecentLocations = [],
+  recentLocationsAvailable = true,
 }: {
   initialObservedAt: string;
+  initialFavoriteLocations?: FavoriteLocation[];
+  favoriteLocationsEnabled?: boolean;
+  favoriteLocationsAvailable?: boolean;
+  initialRecentLocations?: RecentLocation[];
+  recentLocationsAvailable?: boolean;
 }) {
   const engine = useMemo(() => new AstronomyEnginePlanetarium(), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -43,6 +55,25 @@ export function SkySimulator({
   const [canvasSupported, setCanvasSupported] = useState(true);
   const [message, setMessage] = useState(
     "서울 좌표를 기준으로 현재 하늘을 표시합니다.",
+  );
+  const [favoriteLocations, setFavoriteLocations] = useState(
+    initialFavoriteLocations,
+  );
+  const [selectedFavoriteId, setSelectedFavoriteId] = useState("");
+  const [favoriteName, setFavoriteName] = useState("");
+  const [favoritePending, setFavoritePending] = useState(false);
+  const [favoriteMessage, setFavoriteMessage] = useState(
+    favoriteLocationsAvailable
+      ? ""
+      : "저장된 위치를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  );
+  const [recentLocations, setRecentLocations] = useState(initialRecentLocations);
+  const [selectedRecentIndex, setSelectedRecentIndex] = useState("");
+  const [recentPending, setRecentPending] = useState(false);
+  const [recentMessage, setRecentMessage] = useState(
+    recentLocationsAvailable
+      ? ""
+      : "최근 위치를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
   );
 
   useEffect(() => {
@@ -93,6 +124,163 @@ export function SkySimulator({
       () => setMessage("위치 권한이 없거나 현재 위치를 확인하지 못했습니다."),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 300_000 },
     );
+  }
+
+  function selectFavorite(locationId: string) {
+    setSelectedFavoriteId(locationId);
+    const location = favoriteLocations.find(({ id }) => id === locationId);
+    if (!location) {
+      return;
+    }
+
+    const nextLatitude = formatCoordinate(location.latitude);
+    const nextLongitude = formatCoordinate(location.longitude);
+    setLatitude(nextLatitude);
+    setLongitude(nextLongitude);
+    updateSceneForCoordinates(
+      location.latitude,
+      location.longitude,
+      `${location.name} 위치의 하늘로 이동했습니다.`,
+    );
+  }
+
+  async function saveFavoriteLocation() {
+    const parsedLatitude = Number(latitude);
+    const parsedLongitude = Number(longitude);
+    const trimmedName = favoriteName.trim();
+    if (!trimmedName) {
+      setFavoriteMessage("저장할 위치 이름을 입력해 주세요.");
+      return;
+    }
+    if (!validCoordinates(parsedLatitude, parsedLongitude)) {
+      setFavoriteMessage("저장할 위도와 경도를 다시 확인해 주세요.");
+      return;
+    }
+
+    setFavoritePending(true);
+    setFavoriteMessage("이 위치를 저장하고 있습니다.");
+    try {
+      const response = await fetch("/api/favorite-locations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: trimmedName,
+          latitude: parsedLatitude,
+          longitude: parsedLongitude,
+        }),
+      });
+      if (!response.ok) {
+        setFavoriteMessage(favoriteErrorMessage(response.status, "저장"));
+        return;
+      }
+      const payload: unknown = await response.json();
+      if (!isFavoriteLocation(payload)) {
+        setFavoriteMessage("저장된 위치 응답을 확인하지 못했습니다.");
+        return;
+      }
+
+      setFavoriteLocations((current) => [...current, payload]);
+      setSelectedFavoriteId(payload.id);
+      setFavoriteName("");
+      setFavoriteMessage(`${payload.name} 위치를 즐겨찾기에 저장했습니다.`);
+    } catch {
+      setFavoriteMessage("위치를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setFavoritePending(false);
+    }
+  }
+
+  async function removeFavoriteLocation() {
+    if (!selectedFavoriteId) {
+      setFavoriteMessage("삭제할 즐겨찾기 위치를 선택해 주세요.");
+      return;
+    }
+    const selected = favoriteLocations.find(({ id }) => id === selectedFavoriteId);
+    setFavoritePending(true);
+    setFavoriteMessage("선택한 위치를 삭제하고 있습니다.");
+    try {
+      const response = await fetch(`/api/favorite-locations/${selectedFavoriteId}`, {
+        method: "DELETE",
+      });
+      if (response.status !== 204) {
+        setFavoriteMessage(favoriteErrorMessage(response.status, "삭제"));
+        return;
+      }
+      setFavoriteLocations((current) =>
+        current.filter(({ id }) => id !== selectedFavoriteId),
+      );
+      setSelectedFavoriteId("");
+      setFavoriteMessage(
+        selected
+          ? `${selected.name} 위치를 즐겨찾기에서 삭제했습니다.`
+          : "선택한 위치를 즐겨찾기에서 삭제했습니다.",
+      );
+    } catch {
+      setFavoriteMessage("위치를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setFavoritePending(false);
+    }
+  }
+
+  function selectRecentLocation(indexValue: string) {
+    setSelectedRecentIndex(indexValue);
+    if (indexValue === "") {
+      return;
+    }
+    const location = recentLocations[Number(indexValue)];
+    if (!location) {
+      return;
+    }
+
+    setLatitude(formatCoordinate(location.latitude));
+    setLongitude(formatCoordinate(location.longitude));
+    updateSceneForCoordinates(
+      location.latitude,
+      location.longitude,
+      `최근 조회 위치 (${location.timezone})의 하늘로 이동했습니다.`,
+    );
+  }
+
+  async function clearRecentLocationHistory() {
+    setRecentPending(true);
+    setRecentMessage("최근 위치 기록을 삭제하고 있습니다.");
+    try {
+      const response = await fetch("/api/recent-locations", { method: "DELETE" });
+      if (response.status !== 204) {
+        setRecentMessage(
+          response.status === 401
+            ? "로그인 세션이 만료되었습니다. 다시 로그인해 주세요."
+            : "최근 위치를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+        );
+        return;
+      }
+      setRecentLocations([]);
+      setSelectedRecentIndex("");
+      setRecentMessage("최근 조회 위치를 모두 삭제했습니다.");
+    } catch {
+      setRecentMessage("최근 위치를 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+    } finally {
+      setRecentPending(false);
+    }
+  }
+
+  function updateSceneForCoordinates(
+    nextLatitude: number,
+    nextLongitude: number,
+    successMessage: string,
+  ) {
+    try {
+      setScene(
+        engine.calculate({
+          latitude: nextLatitude,
+          longitude: nextLongitude,
+          observedAt: new Date(`${dateTime}:00Z`),
+        }),
+      );
+      setMessage(successMessage);
+    } catch {
+      setMessage("위치와 시각을 다시 확인해 주세요.");
+    }
   }
 
   function shiftTime(hours: number) {
@@ -178,6 +366,114 @@ export function SkySimulator({
           </label>
         </div>
 
+        <section className="sky-favorite-panel" aria-labelledby="sky-favorite-heading">
+          <div className="sky-favorite-heading">
+            <p className="eyebrow" id="sky-favorite-heading">FAVORITE LOCATIONS</p>
+            <p>자주 보는 관측 위치를 저장하고 같은 좌표의 하늘로 바로 이동합니다.</p>
+          </div>
+          {favoriteLocationsEnabled ? (
+            <>
+              <label>
+                <span>저장된 관측 위치</span>
+                <select
+                  value={selectedFavoriteId}
+                  onChange={(event) => selectFavorite(event.target.value)}
+                  disabled={favoritePending || favoriteLocations.length === 0}
+                >
+                  <option value="">
+                    {favoriteLocations.length === 0
+                      ? "저장된 위치가 없습니다"
+                      : "위치를 선택하세요"}
+                  </option>
+                  {favoriteLocations.map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name} · {location.timezone}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>새 즐겨찾기 이름</span>
+                <input
+                  value={favoriteName}
+                  onChange={(event) => setFavoriteName(event.target.value)}
+                  maxLength={100}
+                  placeholder="예: 서울 천문대"
+                  disabled={favoritePending}
+                />
+              </label>
+              <div className="sky-favorite-actions">
+                <button
+                  type="button"
+                  onClick={saveFavoriteLocation}
+                  disabled={favoritePending}
+                >
+                  현재 좌표 저장
+                </button>
+                <button
+                  className="danger"
+                  type="button"
+                  onClick={removeFavoriteLocation}
+                  disabled={favoritePending || !selectedFavoriteId}
+                >
+                  선택 위치 삭제
+                </button>
+              </div>
+              <p className="sky-favorite-message" role="status" aria-live="polite">
+                {favoriteMessage}
+              </p>
+            </>
+          ) : (
+            <p className="sky-favorite-login-note">
+              Google로 로그인하면 현재 좌표를 계정의 즐겨찾기에 저장할 수 있습니다.
+            </p>
+          )}
+        </section>
+
+        {favoriteLocationsEnabled ? (
+          <section className="sky-favorite-panel" aria-labelledby="sky-recent-heading">
+            <div className="sky-favorite-heading">
+              <p className="eyebrow" id="sky-recent-heading">RECENT LOCATIONS</p>
+              <p>저장에 동의했던 최근 조회 좌표를 다시 사용합니다.</p>
+            </div>
+            <label>
+              <span>최근 조회 위치</span>
+              <select
+                value={selectedRecentIndex}
+                onChange={(event) => selectRecentLocation(event.target.value)}
+                disabled={recentPending || recentLocations.length === 0}
+              >
+                <option value="">
+                  {recentLocations.length === 0
+                    ? "최근 위치가 없습니다"
+                    : "위치를 선택하세요"}
+                </option>
+                {recentLocations.map((location, index) => (
+                  <option
+                    key={`${location.latitude}:${location.longitude}:${location.lastQueriedAt}`}
+                    value={index}
+                  >
+                    {location.latitude}, {location.longitude} · {location.timezone}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="sky-favorite-actions">
+              <button
+                className="danger"
+                type="button"
+                onClick={clearRecentLocationHistory}
+                disabled={recentPending || recentLocations.length === 0}
+              >
+                최근 위치 모두 삭제
+              </button>
+            </div>
+            <p className="sky-favorite-message" role="status" aria-live="polite">
+              {recentMessage}
+            </p>
+          </section>
+        ) : null}
+
         <label>
           <span>관측 시각 (UTC)</span>
           <input
@@ -195,7 +491,9 @@ export function SkySimulator({
           {message}
         </p>
         <p className="sky-privacy-note">
-          좌표와 시각은 이 시뮬레이션 계산에만 사용하며 서버에 저장하지 않습니다.
+          {favoriteLocationsEnabled
+            ? "즐겨찾기는 직접 저장한 경우에만, 최근 위치는 관측 조회에서 동의한 경우에만 계정에 저장합니다. 관측 시각은 저장하지 않습니다."
+            : "좌표와 시각은 이 시뮬레이션 계산에만 사용하며 서버에 저장하지 않습니다."}
         </p>
       </form>
 
@@ -260,6 +558,46 @@ export function SkySimulator({
         </details>
       </section>
     </div>
+  );
+}
+
+function validCoordinates(latitude: number, longitude: number): boolean {
+  return (
+    Number.isFinite(latitude) &&
+    latitude >= -90 &&
+    latitude <= 90 &&
+    Number.isFinite(longitude) &&
+    longitude >= -180 &&
+    longitude <= 180
+  );
+}
+
+function formatCoordinate(value: number): string {
+  return value.toFixed(6).replace(/\.?0+$/, "");
+}
+
+function favoriteErrorMessage(status: number, action: "저장" | "삭제"): string {
+  if (status === 401) {
+    return "로그인 세션이 만료되었습니다. 다시 로그인해 주세요.";
+  }
+  if (status === 400) {
+    return "위치 이름과 좌표를 다시 확인해 주세요.";
+  }
+  return `위치를 ${action}하지 못했습니다. 잠시 후 다시 시도해 주세요.`;
+}
+
+function isFavoriteLocation(payload: unknown): payload is FavoriteLocation {
+  if (typeof payload !== "object" || payload === null) {
+    return false;
+  }
+  const location = payload as Partial<FavoriteLocation>;
+  return (
+    typeof location.id === "string" &&
+    typeof location.name === "string" &&
+    typeof location.latitude === "number" &&
+    typeof location.longitude === "number" &&
+    typeof location.timezone === "string" &&
+    typeof location.createdAt === "string"
   );
 }
 

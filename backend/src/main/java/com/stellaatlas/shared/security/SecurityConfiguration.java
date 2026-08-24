@@ -2,6 +2,7 @@ package com.stellaatlas.shared.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.stellaatlas.shared.error.ApiErrorResponse;
+import com.stellaatlas.user.infrastructure.GoogleOidcUserService;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.time.Clock;
@@ -24,6 +25,7 @@ public class SecurityConfiguration {
     SecurityFilterChain securityFilterChain(
             HttpSecurity http,
             ObjectProvider<ClientRegistrationRepository> registrations,
+            ObjectProvider<GoogleOidcUserService> oidcUserServices,
             ObjectMapper objectMapper,
             Clock clock,
             @Value("${stellaatlas.security.frontend-base-url:http://localhost:3000}")
@@ -71,7 +73,13 @@ public class SecurityConfiguration {
                                 response.setStatus(HttpServletResponse.SC_NO_CONTENT)));
 
         if (registrations.getIfAvailable() != null) {
-            http.oauth2Login(login -> login.defaultSuccessUrl(frontendBaseUrl, true));
+            GoogleOidcUserService oidcUserService = oidcUserServices.getIfAvailable();
+            http.oauth2Login(login -> {
+                login.defaultSuccessUrl(frontendBaseUrl, true);
+                if (oidcUserService != null) {
+                    login.userInfoEndpoint(userInfo -> userInfo.oidcUserService(oidcUserService::loadUser));
+                }
+            });
         }
 
         return http.build();

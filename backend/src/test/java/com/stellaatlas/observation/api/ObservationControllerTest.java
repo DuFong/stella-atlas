@@ -2,6 +2,8 @@ package com.stellaatlas.observation.api;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.stellaatlas.location.application.RecentLocationService;
 import com.stellaatlas.astronomy.domain.AstronomyConditions;
 import com.stellaatlas.astronomy.domain.HorizonEvent;
 import com.stellaatlas.astronomy.domain.LunarEvents;
@@ -32,8 +35,10 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.security.web.method.annotation.AuthenticationPrincipalArgumentResolver;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -48,9 +53,11 @@ class ObservationControllerTest {
         when(service.getForecast(any())).thenReturn(forecast());
         ObservationController controller = new ObservationController(
                 service,
-                new ObservationResponseMapper(Clock.fixed(GENERATED_AT, ZoneOffset.UTC))
+                new ObservationResponseMapper(Clock.fixed(GENERATED_AT, ZoneOffset.UTC)),
+                mock(RecentLocationService.class)
         );
         MockMvc mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new AuthenticationPrincipalArgumentResolver())
                 .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper()))
                 .build();
 
@@ -71,6 +78,36 @@ class ObservationControllerTest {
                 .andExpect(jsonPath("$.hourly[0].reasons[0].code")
                         .value("MODERATE_CLOUD_COVER"))
                 .andExpect(jsonPath("$.generatedAt").value(GENERATED_AT.toString()));
+    }
+
+    @Test
+    void shouldRecordRecentLocationOnlyWithExplicitConsentAndAuthenticatedUser() {
+        ObservationForecastService service = mock(ObservationForecastService.class);
+        when(service.getForecast(any())).thenReturn(forecast());
+        RecentLocationService recentLocations = mock(RecentLocationService.class);
+        ObservationController controller = new ObservationController(
+                service,
+                new ObservationResponseMapper(Clock.fixed(GENERATED_AT, ZoneOffset.UTC)),
+                recentLocations
+        );
+        com.stellaatlas.user.application.AuthenticatedUser user =
+                () -> UUID.fromString("10000000-0000-0000-0000-000000000001");
+
+        controller.getForecast(37.5665, 126.978, LocalDate.of(2026, 8, 1), true, user);
+        controller.getForecast(35.1796, 129.0756, LocalDate.of(2026, 8, 1), false, user);
+
+        verify(recentLocations).record(
+                user.userId(),
+                37.5665,
+                126.978,
+                SEOUL
+        );
+        verify(recentLocations, never()).record(
+                user.userId(),
+                35.1796,
+                129.0756,
+                SEOUL
+        );
     }
 
     private ObservationForecast forecast() {

@@ -22,18 +22,20 @@
 | Implemented | 1 | `GET /actuator/health` | 애플리케이션과 의존 서비스 상태 |
 | Implemented | 1 | `GET /actuator/info` | 빌드 및 애플리케이션 정보 확장 지점 |
 | Implemented | 5 | `GET /api/v1/observations` | 위치와 날짜의 통합 관측 예보 |
-| Foundation | 6 | `GET /oauth2/authorization/google` | OAuth profile의 Google OIDC 로그인 시작 |
+| Implemented | 8 | `GET /oauth2/authorization/google` | 검증된 Google OIDC 로그인 시작 |
 | Implemented | 6 | `GET /api/v1/auth/csrf` | 상태 변경 요청용 CSRF token 발급 |
 | Implemented | 6 | `GET /api/v1/users/me` | 로그인한 사용자 프로필 조회 |
 | Implemented | 6 | `POST /api/v1/auth/logout` | 현재 세션 로그아웃 |
 | Planned support | TBD | `GET /api/v1/locations/search` | 지역명 검색과 좌표·타임존 확인 |
-| Planned user | 8 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
-| Planned user | 8 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
-| Planned user | 8 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
-| Planned user | 8 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
-| Planned user | 8 | `GET /api/v1/users/me/recent-locations` | 최근 조회 위치 목록 |
-| Planned user | 8 | `GET /api/v1/users/me/records` | 서버 관측 기록 목록 |
-| Planned user | 8 | `POST /api/v1/users/me/records` | 서버 관측 기록 생성 |
+| Implemented | 8 | `GET /api/v1/users/me/locations` | 즐겨찾기 관측 장소 목록 |
+| Implemented | 8 | `GET /api/v1/users/me/locations/{locationId}` | 즐겨찾기 관측 장소 조회 |
+| Implemented | 8 | `POST /api/v1/users/me/locations` | 관측 장소 즐겨찾기 등록 |
+| Implemented | 8 | `DELETE /api/v1/users/me/locations/{locationId}` | 관측 장소 즐겨찾기 삭제 |
+| Implemented | 8 | `GET /api/v1/users/me/recent-locations` | 최근 조회 위치 목록 |
+| Implemented | 8 | `DELETE /api/v1/users/me/recent-locations` | 최근 조회 위치 전체 삭제 |
+| Implemented | 8 | `GET /api/v1/users/me/records` | 서버 관측 기록 메타데이터 목록 |
+| Implemented | 8 | `POST /api/v1/users/me/records` | 서버 관측 기록 메타데이터 생성 |
+| Implemented | 8 | `DELETE /api/v1/users/me/records/{recordId}` | 서버 관측 기록 메타데이터 삭제 |
 
 `Planned` API는 구현된 계약이 아니며 해당 마일스톤에서 요청·응답, 인증과 오류
 처리를 확정합니다. 날씨와 천문 공급자는 내부 Adapter이므로
@@ -44,16 +46,18 @@
 
 ## 3. Authentication and Current User API
 
-Status: Authentication foundation implemented in Milestone 6.
+Status: Authentication foundation implemented in Milestone 6; local Google
+OAuth callback verified and internal user mapping implemented in Milestone 8.
 
 Google OIDC Authorization Code 로그인과 Spring Security의 서버 세션을
 사용합니다. 로그인 시작 endpoint는 브라우저를 Google로 redirect하고, callback
 성공 후 설정된 프런트엔드 주소로 돌아옵니다.
 
-Milestone 6은 client와 보안 경계를 구현한 단계입니다. 실제 Google Cloud OAuth
-애플리케이션 등록, 동의 화면, 운영 redirect URI와 내부 사용자 연결은 Milestone
-8에서 완료합니다. 그 전에는 프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인
-진입 UI를 활성화하지 않습니다.
+Milestone 6은 client와 보안 경계를 구현한 단계입니다. Milestone 8에서 실제
+Google Cloud OAuth 애플리케이션의 로컬 callback을 검증하고 Google identity를
+안정적인 내부 사용자 UUID에 연결했습니다. callback을 검증하지 않은 환경에서는
+프런트의 `AUTH_ENABLED`를 `false`로 유지하며 로그인 진입 UI를 활성화하지
+않습니다.
 
 ```http
 GET /oauth2/authorization/google
@@ -78,7 +82,8 @@ GET /api/v1/users/me
 ```
 
 외부 provider subject, OAuth access token과 session identifier는 응답에
-포함하지 않습니다.
+포함하지 않습니다. 로그인할 때 `(provider, subject)` mapping과 사용자 프로필을
+서버에 저장하며, 같은 identity의 재로그인은 기존 내부 UUID를 재사용합니다.
 
 ### Logout
 
@@ -105,7 +110,173 @@ POST /api/v1/auth/logout
 
 ---
 
-## 4. Observation Forecast API
+## 4. Favorite Location API
+
+Status: Implemented in Milestone 8.
+
+모든 endpoint는 인증이 필요합니다. 목록·상세·삭제 query는 현재 내부 사용자
+UUID로 제한하며, 다른 사용자의 location ID를 요청해도 동일한
+`404 LOCATION_NOT_FOUND`를 반환합니다.
+
+### Create
+
+```http
+POST /api/v1/users/me/locations
+Content-Type: application/json
+X-CSRF-TOKEN: ...
+```
+
+```json
+{
+  "name": "서울 천문대",
+  "latitude": 37.5665,
+  "longitude": 126.978
+}
+```
+
+- `name`은 공백이 아닌 1~100자입니다.
+- 좌표는 위도 -90~90, 경도 -180~180이며 소수점 이하 최대 6자리입니다.
+- timezone은 클라이언트 입력을 신뢰하지 않고 서버가 좌표로 결정합니다.
+- 사용자가 명시적으로 즐겨찾기를 생성한 경우에만 정확한 좌표를 저장합니다.
+
+성공 시 `201 Created`와 생성된 위치를 반환합니다.
+
+```json
+{
+  "id": "30000000-0000-0000-0000-000000000003",
+  "name": "서울 천문대",
+  "latitude": 37.566500,
+  "longitude": 126.978000,
+  "timezone": "Asia/Seoul",
+  "createdAt": "2026-08-24T04:00:00Z"
+}
+```
+
+### List and detail
+
+```http
+GET /api/v1/users/me/locations
+GET /api/v1/users/me/locations/{locationId}
+```
+
+목록은 생성시각과 ID의 오름차순으로 반환합니다. 목록 응답은 위 response 객체의
+배열이며 저장된 위치가 없으면 빈 배열입니다.
+
+### Delete
+
+```http
+DELETE /api/v1/users/me/locations/{locationId}
+X-CSRF-TOKEN: ...
+```
+
+성공 시 `204 No Content`를 반환합니다.
+
+---
+
+## 5. Recent Location API
+
+Status: Implemented in Milestone 8.
+
+최근 위치 저장은 로그인 사용자가 관측 조회에서 `rememberLocation=true`를 명시한
+경우에만 수행합니다. 좌표는 소수점 이하 4자리로 반올림해 최소화하고, 사용자별
+최신 10개만 유지합니다. 같은 축소 좌표를 다시 조회하면 새 항목을 만들지 않고
+timezone과 최종 조회시각을 갱신합니다.
+
+```http
+GET /api/v1/users/me/recent-locations
+```
+
+```json
+[
+  {
+    "latitude": 37.5665,
+    "longitude": 126.9780,
+    "timezone": "Asia/Seoul",
+    "lastQueriedAt": "2026-08-24T04:00:00Z"
+  }
+]
+```
+
+목록은 최종 조회시각과 ID의 내림차순이며 비어 있으면 빈 배열입니다. 내부 ID는
+클라이언트에 노출하지 않습니다.
+
+```http
+DELETE /api/v1/users/me/recent-locations
+X-CSRF-TOKEN: ...
+```
+
+현재 사용자의 최근 위치를 모두 지우며 성공 시 `204 No Content`를 반환합니다.
+
+---
+
+## 6. Server Observation Record API
+
+Status: Metadata-only create, list and delete implemented in Milestone 8.
+
+모든 endpoint는 인증이 필요하고 현재 내부 사용자 UUID로 제한합니다. 서버에는
+관측 메타데이터만 저장하며 이미지, EXIF 원본, 로컬 IndexedDB ID는 전송하거나
+연결하지 않습니다.
+
+### Create
+
+```http
+POST /api/v1/users/me/records
+Content-Type: application/json
+X-CSRF-TOKEN: ...
+```
+
+```json
+{
+  "observedAt": "2026-08-24T12:00:00Z",
+  "timezone": "Asia/Seoul",
+  "latitude": 37.566500,
+  "longitude": 126.978000,
+  "comment": "맑은 하늘에서 목성을 관측했다. #목성 #서울"
+}
+```
+
+- `observedAt`과 유효한 IANA `timezone`은 필수입니다.
+- 좌표는 선택 사항이지만 위도·경도를 함께 보내야 하며 소수점 이하 최대
+  6자리입니다.
+- `comment`는 빈 문자열을 허용하고 최대 500자입니다.
+- 해시태그는 코멘트 원문에서 서버가 순서대로 추출하고 소문자로 정규화하며
+  중복을 제거합니다.
+
+성공 시 `201 Created`와 다음 metadata response를 반환합니다.
+
+```json
+{
+  "id": "40000000-0000-0000-0000-000000000004",
+  "observedAt": "2026-08-24T12:00:00Z",
+  "timezone": "Asia/Seoul",
+  "latitude": 37.566500,
+  "longitude": 126.978000,
+  "comment": "맑은 하늘에서 목성을 관측했다. #목성 #서울",
+  "hashtags": ["목성", "서울"],
+  "mediaStatus": "NOT_ATTACHED",
+  "createdAt": "2026-08-24T13:00:00Z"
+}
+```
+
+위치가 없으면 `latitude`와 `longitude`는 `null`입니다. `mediaStatus`는 M8 계약에서
+항상 `NOT_ATTACHED`이며 업로드 가능성을 의미하지 않습니다.
+
+### List and delete
+
+```http
+GET /api/v1/users/me/records
+DELETE /api/v1/users/me/records/{recordId}
+X-CSRF-TOKEN: ...
+```
+
+목록은 생성시각과 ID의 내림차순이며 현재는 response 객체 배열을 반환합니다.
+삭제는 ID와 owner UUID를 함께 조건으로 사용해 다른 사용자의 기록 존재 여부를
+숨기고 성공 시 `204 No Content`를 반환합니다. 서버 미디어 저장, 로컬 게시물
+자동 이전과 pagination은 후속 정책 승인 전까지 명시적으로 보류합니다.
+
+---
+
+## 7. Observation Forecast API
 
 Status: Implemented in Milestone 5.
 
@@ -122,6 +293,7 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
 | latitude | decimal | yes | -90 ~ 90 |
 | longitude | decimal | yes | -180 ~ 180 |
 | date | ISO date | yes | 조회 위치 기준 로컬 날짜 |
+| rememberLocation | boolean | no | 인증 사용자의 축소 좌표를 최근 위치에 저장, 기본값 `false` |
 
 타임존은 서버가 좌표를 기반으로 판별하는 것을 우선합니다.
 
@@ -221,7 +393,7 @@ GET /api/v1/observations?latitude=37.5665&longitude=126.9780&date=2026-08-01
 
 ---
 
-## 5. Milestone 7 Local Data Boundary
+## 8. Local Data Boundary
 
 Milestone 7의 관측 게시물과 사진은 브라우저 IndexedDB에만 저장하므로 신규
 Spring Boot API를 추가하지 않습니다. 로컬 게시물 ID는 브라우저 내부 식별자이며
@@ -237,9 +409,10 @@ Spring Boot API를 추가하지 않습니다. 로컬 게시물 ID는 브라우�
 - EXIF, 촬영 컨텍스트 또는 사용자 입력의 값 출처
 - 생성·수정 시각과 local schema version
 
-Milestone 8에서 서버 기록을 도입할 때 요청·응답, 인증, multipart 또는 presigned
-upload 방식, 용량 제한, 악성 파일 검사와 로컬 데이터 이전 계약을 별도로
-확정합니다. 브라우저 schema를 그대로 공개 API로 복사하지 않습니다.
+Milestone 8의 서버 기록은 위 metadata 계약만 사용합니다. multipart 또는
+presigned upload 방식, 용량 제한, 악성 파일 검사와 로컬 데이터 이전 계약은
+별도로 확정할 때까지 구현하지 않습니다. 브라우저 schema를 공개 API로 복사하지
+않으며 로컬 사진은 서버로 전송하지 않습니다.
 
 천체 관측 시뮬레이션도 Milestone 7에서는 프런트엔드 엔진으로 실행합니다. 기존
 `GET /api/v1/observations`를 플라네타리움 공급자 endpoint로 확장하거나 대규모
@@ -247,7 +420,7 @@ upload 방식, 용량 제한, 악성 파일 검사와 로컬 데이터 이전 �
 
 ---
 
-## 6. Data Conventions
+## 9. Data Conventions
 
 ### Date
 
@@ -289,7 +462,7 @@ moonIllumination: 0.18
 
 ---
 
-## 7. Error Response
+## 10. Error Response
 
 ```json
 {
@@ -328,6 +501,8 @@ moonIllumination: 0.18
 | 400 | UNSUPPORTED_DATE | 지원하지 않는 날짜 |
 | 401 | UNAUTHORIZED | 인증 필요 |
 | 403 | FORBIDDEN | 권한 없음 |
+| 404 | LOCATION_NOT_FOUND | 현재 사용자가 소유한 저장 위치 없음 |
+| 404 | OBSERVATION_RECORD_NOT_FOUND | 현재 사용자가 소유한 서버 관측 기록 없음 |
 | 404 | RESOURCE_NOT_FOUND | 리소스 없음 |
 | 429 | RATE_LIMIT_EXCEEDED | 호출 제한 초과 |
 | 502 | EXTERNAL_PROVIDER_ERROR | 외부 공급자 오류 |
@@ -339,7 +514,7 @@ moonIllumination: 0.18
 
 ---
 
-## 8. HTTP Status Rules
+## 11. HTTP Status Rules
 
 - `200 OK`: 정상 조회
 - `201 Created`: 리소스 생성
@@ -356,11 +531,11 @@ moonIllumination: 0.18
 
 ---
 
-## 9. Pagination
+## 12. Pagination
 
-Milestone 8의 기록 및 최근 위치 목록에는 커서 기반 페이지네이션을 우선
-검토합니다. 아래
-계약은 아직 확정되지 않은 예시입니다.
+최근 위치는 서버에서 최대 10개로 제한하므로 pagination을 사용하지 않습니다.
+관측 기록 목록은 M8에서 단순 배열이며, 데이터 증가에 대비한 커서 기반 계약은
+후속 마일스톤에서 확정합니다. 아래는 아직 구현되지 않은 예시입니다.
 
 ```http
 GET /api/v1/users/me/records?cursor=...&size=20
@@ -378,7 +553,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 10. Idempotency
+## 13. Idempotency
 
 결제와 같은 기능이 도입되기 전에는 필수는 아니지만,  
 중복 생성 가능성이 있는 API는 멱등성을 고려합니다.
@@ -387,7 +562,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 11. Versioning
+## 14. Versioning
 
 초기에는 URL 버전을 사용합니다.
 
@@ -399,7 +574,7 @@ GET /api/v1/users/me/records?cursor=...&size=20
 
 ---
 
-## 12. API Documentation
+## 15. API Documentation
 
 Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정책에 따라
 결정합니다.
@@ -409,7 +584,7 @@ Springdoc OpenAPI 도입 여부는 첫 제품 API를 구현할 때 의존성 정
 
 ---
 
-## 13. API Review Checklist
+## 16. API Review Checklist
 
 - 입력 검증이 있는가?
 - 타임존이 명확한가?

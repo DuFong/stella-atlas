@@ -55,6 +55,113 @@ textarea {
   color: white;
 }
 
+.server-records {
+  display: grid;
+  width: min(100% - 32px, 1160px);
+  margin: 44px auto 0;
+  gap: 22px;
+  border: 1px solid rgb(145 201 255 / 18%);
+  border-radius: 28px;
+  padding: clamp(20px, 4vw, 34px);
+  background: rgb(14 21 41 / 94%);
+  color: white;
+  box-shadow: 0 28px 80px rgb(0 0 0 / 24%);
+}
+
+.server-records-heading {
+  max-width: 760px;
+}
+
+.server-records-heading h1 {
+  margin: 0;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  letter-spacing: -0.05em;
+}
+
+.server-records-heading > p:last-child,
+.server-record-message,
+.server-record-empty {
+  color: rgb(255 255 255 / 58%);
+  line-height: 1.65;
+}
+
+.server-record-form fieldset {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.server-record-form legend {
+  margin-bottom: 18px;
+  font-weight: 760;
+}
+
+.server-record-form .journal-submit-button {
+  min-height: 46px;
+  border-radius: 12px;
+  padding-inline: 18px;
+  cursor: pointer;
+  font-weight: 760;
+}
+
+.server-record-message,
+.server-record-empty {
+  margin: 0;
+  font-size: 0.8rem;
+}
+
+.server-record-list {
+  display: grid;
+  gap: 10px;
+}
+
+.server-record-card {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid rgb(255 255 255 / 10%);
+  border-radius: 16px;
+  padding: 16px;
+  background: rgb(255 255 255 / 4%);
+}
+
+.server-record-card time {
+  color: var(--sky-300);
+  font-size: 0.78rem;
+  font-weight: 740;
+}
+
+.server-record-card p {
+  margin: 8px 0;
+  white-space: pre-wrap;
+}
+
+.server-record-card small {
+  color: rgb(255 255 255 / 46%);
+}
+
+.server-record-card > button {
+  border: 1px solid rgb(255 173 143 / 22%);
+  border-radius: 9px;
+  padding: 7px 10px;
+  background: rgb(255 173 143 / 7%);
+  color: var(--coral-300);
+  cursor: pointer;
+}
+
+.server-record-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+  color: var(--lime-300);
+  font-size: 0.72rem;
+}
+
 .journal-layout {
   width: min(100% - 32px, 1160px);
   margin-inline: auto;
@@ -770,7 +877,8 @@ textarea {
   gap: 10px;
 }
 
-.observation-form input {
+.observation-form input,
+.observation-form select {
   width: 100%;
   min-height: 46px;
   border: 1px solid rgb(255 255 255 / 13%);
@@ -781,9 +889,34 @@ textarea {
   color: white;
 }
 
-.observation-form input:focus-visible {
+.observation-form input:focus-visible,
+.observation-form select:focus-visible {
   border-color: var(--lime-300);
   box-shadow: 0 0 0 3px rgb(200 243 106 / 14%);
+}
+
+.observation-location-library {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  border: 1px solid rgb(200 243 106 / 14%);
+  border-radius: 14px;
+  padding: 12px;
+  background: rgb(200 243 106 / 4%);
+}
+
+.remember-location-option {
+  display: flex !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 9px !important;
+  font-size: 0.74rem !important;
+}
+
+.remember-location-option input {
+  width: 18px;
+  min-height: 18px;
+  accent-color: var(--lime-300);
 }
 
 .observation-form button {
@@ -1673,7 +1806,8 @@ textarea {
   font-weight: 700;
 }
 
-.sky-control-panel input {
+.sky-control-panel input,
+.sky-control-panel select {
   width: 100%;
   min-height: 46px;
   border: 1px solid rgb(255 255 255 / 14%);
@@ -1685,15 +1819,84 @@ textarea {
   color-scheme: dark;
 }
 
-.sky-control-panel input:focus-visible {
+.sky-control-panel input:focus-visible,
+.sky-control-panel select:focus-visible {
   border-color: var(--lime-300);
   box-shadow: 0 0 0 3px rgb(200 243 106 / 14%);
+}
+
+.sky-control-panel select:disabled,
+.sky-control-panel input:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 .sky-coordinate-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.sky-favorite-panel {
+  display: grid;
+  gap: 12px;
+  border: 1px solid rgb(200 243 106 / 14%);
+  border-radius: 16px;
+  padding: 15px;
+  background: rgb(200 243 106 / 4%);
+}
+
+.sky-favorite-heading {
+  display: grid;
+  gap: 6px;
+}
+
+.sky-favorite-heading .eyebrow,
+.sky-favorite-heading p,
+.sky-favorite-message,
+.sky-favorite-login-note {
+  margin: 0;
+}
+
+.sky-favorite-heading > p:last-child,
+.sky-favorite-message,
+.sky-favorite-login-note {
+  color: rgb(255 255 255 / 52%);
+  font-size: 0.72rem;
+  line-height: 1.55;
+}
+
+.sky-favorite-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.sky-favorite-actions button {
+  min-height: 40px;
+  border: 1px solid rgb(145 201 255 / 22%);
+  border-radius: 10px;
+  background: rgb(145 201 255 / 8%);
+  color: var(--sky-300);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.sky-favorite-actions button.danger {
+  border-color: rgb(255 143 143 / 20%);
+  background: rgb(255 143 143 / 7%);
+  color: #ffb0b0;
+}
+
+.sky-favorite-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.sky-favorite-actions button:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
 }
 
 .sky-location-button,

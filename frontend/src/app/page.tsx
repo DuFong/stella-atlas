@@ -1,6 +1,10 @@
 import { getAuthSession } from "@/features/auth/api/get-auth-session";
 import { AccountMenu } from "@/features/auth/components/account-menu";
 import type { AuthSession } from "@/features/auth/types/auth";
+import { getFavoriteLocations } from "@/features/location/api/favorite-locations";
+import { getRecentLocations } from "@/features/location/api/recent-locations";
+import type { FavoriteLocation } from "@/features/location/types/favorite-location";
+import type { RecentLocation } from "@/features/location/types/recent-location";
 import { getObservation } from "@/features/observation/api/get-observation";
 import { ObservationDetails } from "@/features/observation/components/observation-details";
 import { ObservationSearchForm } from "@/features/observation/components/observation-search-form";
@@ -39,6 +43,7 @@ type HomeSearchParams = Promise<{
   longitude?: string | string[];
   date?: string | string[];
   auth?: string | string[];
+  rememberLocation?: string | string[];
 }>;
 
 export default async function Home({
@@ -53,11 +58,22 @@ export default async function Home({
     .map(({ name, value }) => `${name}=${value}`)
     .join("; ");
   const authEnabled = process.env.AUTH_ENABLED === "true";
-  const [session, result] = await Promise.all([
-    authEnabled
-      ? getAuthSession(cookieHeader)
-      : Promise.resolve<AuthSession>({ status: "disabled" }),
-    isCompleteQuery(query) ? getObservation(query) : undefined,
+  const session = authEnabled
+    ? await getAuthSession(cookieHeader)
+    : ({ status: "disabled" } satisfies AuthSession);
+  const rememberLocation = firstValue(params.rememberLocation) === "true";
+  const observationPromise = isCompleteQuery(query)
+    ? getObservation(query, cookieHeader, rememberLocation)
+    : Promise.resolve(undefined);
+  const favoritePromise = session.status === "authenticated"
+    ? getFavoriteLocations(cookieHeader)
+    : Promise.resolve(undefined);
+  const result = await observationPromise;
+  const [favoriteResult, recentResult] = await Promise.all([
+    favoritePromise,
+    session.status === "authenticated"
+      ? getRecentLocations(cookieHeader)
+      : undefined,
   ]);
 
   return (
@@ -65,6 +81,9 @@ export default async function Home({
       query={query}
       result={result}
       session={session}
+      favoriteLocations={favoriteResult?.ok ? favoriteResult.data : []}
+      recentLocations={recentResult?.ok ? recentResult.data : []}
+      rememberLocation={rememberLocation}
       authNotice={toAuthNotice(firstValue(params.auth))}
     />
   );
@@ -75,11 +94,17 @@ export function HomeContent({
   result,
   session = { status: "disabled" },
   authNotice,
+  favoriteLocations = [],
+  recentLocations = [],
+  rememberLocation = false,
 }: {
   query: ObservationQuery;
   result?: ObservationApiResult;
   session?: AuthSession;
   authNotice?: "logout-error" | "oauth-pending";
+  favoriteLocations?: FavoriteLocation[];
+  recentLocations?: RecentLocation[];
+  rememberLocation?: boolean;
 }) {
   return (
     <main>
@@ -99,7 +124,7 @@ export function HomeContent({
             <Link className="nav-link" href="/sky">
               밤하늘 시뮬레이션
             </Link>
-            <span className="milestone-badge">Milestone 7</span>
+            <span className="milestone-badge">Milestone 8</span>
             <AccountMenu session={session} />
           </div>
         </nav>
@@ -125,7 +150,13 @@ export function HomeContent({
               바꿔드립니다.
             </p>
 
-            <ObservationSearchForm query={query} />
+            <ObservationSearchForm
+              query={query}
+              favoriteLocations={favoriteLocations}
+              recentLocations={recentLocations}
+              locationLibraryEnabled={session.status === "authenticated"}
+              rememberLocation={rememberLocation}
+            />
           </div>
 
           {result?.ok ? (

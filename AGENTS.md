@@ -1054,51 +1054,36 @@ Notes
 No active implementation milestone
 ```
 
-Status: Milestone 7 is complete. Milestone 8 is planned but has not been
-explicitly started.
+Status: Milestone 8 completed on 2026-08-24. Milestone 9 has not started and
+requires explicit activation.
 
 ## Most Recently Completed Milestone Goal
 
-Milestone 7 adds local-first observation posts with image selection or camera
-capture, editable EXIF-assisted time and coordinates, comments and hashtags,
-plus an interactive client-side sky simulation. Posts and image blobs remain in
-the current browser's IndexedDB until server persistence is designed. The
-sky simulation uses the MIT-licensed Astronomy Engine behind a project port and
-a project-owned Canvas renderer. D3-Celestial and Stellarium Web Engine are not
-dependencies.
+Milestone 8 adds verified local Google OAuth, stable internal user UUIDs,
+owner-scoped favorite locations, opt-in recent queried locations with a
+four-decimal coordinate precision and ten-item retention limit, and
+metadata-only authenticated observation records. Server media persistence and
+local IndexedDB post migration remain deferred.
 
 ## Current Scope
 
-Allowed work:
+Until Milestone 9 is explicitly activated, allowed work is limited to fixes,
+verification and documentation for completed milestones. Production deployment,
+server media persistence, social features, notifications and personalized
+recommendations remain out of scope unless separately approved.
 
-- fixes to the completed authentication foundation;
-- documentation and verification needed to close Milestone 7;
-- fixes to the completed local journal and interactive sky simulation;
-- preparation that does not implement Milestone 8 product behavior.
+## Milestone 8 Completion Criteria — Complete
 
-Out of scope until Milestone 8 is explicitly started:
-
-- Google Cloud OAuth consent screen and client registration;
-- internal user persistence and provider identity mapping;
-- favorite observation locations;
-- recent queried location history;
-- server-side observation record or media persistence;
-- social networking and community features;
-- notifications and personalized recommendations;
-- public provider-oriented weather or astronomy endpoints;
-- production deployment.
-
-## Milestone 7 Completion Criteria
-
-- image upload and supported-device camera capture create editable local posts;
-- EXIF time and GPS are proposed when present and missing metadata remains blank;
-- metadata and image Blob changes are atomic in the versioned IndexedDB adapter;
-- local posts support list, detail, update, and delete flows with privacy notice;
-- camera, location, metadata, storage, and Canvas failure states are explicit;
-- the sky simulator supports deterministic time, direction, zoom, object, and
-  constellation rendering behind a replaceable engine port;
-- runtime dependencies and distribution obligations are documented;
-- frontend lint, type-check, tests, and production build pass.
+- local Google OAuth login and callback are verified without committing secrets;
+- Google identities map to stable internal user UUIDs;
+- favorite locations support authenticated create, read and delete flows;
+- recent locations have an explicit retention limit and authenticated listing;
+- every user resource query enforces ownership and location data minimization;
+- server observation record metadata has a documented contract and authenticated
+  create and list flows;
+- server media storage and local-post migration remain deferred until their
+  policies are approved;
+- relevant backend and frontend verification commands pass.
 
 ---
 

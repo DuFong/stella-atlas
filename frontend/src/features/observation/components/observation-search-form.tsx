@@ -1,10 +1,16 @@
 "use client";
 
 import { useRef, useState } from "react";
+import type { FavoriteLocation } from "@/features/location/types/favorite-location";
+import type { RecentLocation } from "@/features/location/types/recent-location";
 import type { ObservationQuery } from "@/features/observation/types/observation";
 
 type ObservationSearchFormProps = {
   query: ObservationQuery;
+  favoriteLocations?: FavoriteLocation[];
+  recentLocations?: RecentLocation[];
+  locationLibraryEnabled?: boolean;
+  rememberLocation?: boolean;
 };
 
 type LocationStatus =
@@ -15,6 +21,10 @@ type LocationStatus =
 
 export function ObservationSearchForm({
   query,
+  favoriteLocations = [],
+  recentLocations = [],
+  locationLibraryEnabled = false,
+  rememberLocation = false,
 }: ObservationSearchFormProps) {
   const latitudeRef = useRef<HTMLInputElement>(null);
   const longitudeRef = useRef<HTMLInputElement>(null);
@@ -65,6 +75,17 @@ export function ObservationSearchForm({
 
   const isLocating = locationStatus.state === "loading";
 
+  function fillCoordinates(latitude: number, longitude: number, label: string) {
+    if (latitudeRef.current && longitudeRef.current) {
+      latitudeRef.current.value = String(latitude);
+      longitudeRef.current.value = String(longitude);
+    }
+    setLocationStatus({
+      state: "success",
+      message: `${label} 좌표를 입력했습니다. 관측 조건 확인을 눌러 조회해 주세요.`,
+    });
+  }
+
   return (
     <form className="observation-form" action="/" method="get">
       <button
@@ -88,6 +109,60 @@ export function ObservationSearchForm({
         >
           {locationStatus.message}
         </p>
+      ) : null}
+      {locationLibraryEnabled ? (
+        <div className="observation-location-library">
+          <label>
+            <span>즐겨찾기 위치</span>
+            <select
+              aria-label="즐겨찾기 관측 위치"
+              defaultValue=""
+              onChange={(event) => {
+                const location = favoriteLocations.find(
+                  ({ id }) => id === event.target.value,
+                );
+                if (location) {
+                  fillCoordinates(location.latitude, location.longitude, location.name);
+                }
+              }}
+            >
+              <option value="">선택하지 않음</option>
+              {favoriteLocations.map((location) => (
+                <option key={location.id} value={location.id}>
+                  {location.name} · {location.timezone}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>최근 조회 위치</span>
+            <select
+              aria-label="최근 조회한 관측 위치"
+              defaultValue=""
+              onChange={(event) => {
+                if (event.target.value === "") {
+                  return;
+                }
+                const index = Number(event.target.value);
+                const location = recentLocations[index];
+                if (location) {
+                  fillCoordinates(
+                    location.latitude,
+                    location.longitude,
+                    `최근 위치 (${location.timezone})`,
+                  );
+                }
+              }}
+            >
+              <option value="">선택하지 않음</option>
+              {recentLocations.map((location, index) => (
+                <option key={`${location.latitude}:${location.longitude}`} value={index}>
+                  {location.latitude}, {location.longitude} · {location.timezone}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
       ) : null}
       <div className="coordinate-fields">
         <label>
@@ -127,8 +202,21 @@ export function ObservationSearchForm({
         <span aria-hidden="true">✦</span>
         관측 조건 확인
       </button>
+      {locationLibraryEnabled ? (
+        <label className="remember-location-option">
+          <input
+            name="rememberLocation"
+            type="checkbox"
+            value="true"
+            defaultChecked={rememberLocation}
+          />
+          <span>이 조회 위치를 최근 위치에 저장</span>
+        </label>
+      ) : null}
       <p className="form-hint">
-        입력한 좌표는 결과 조회에만 사용하며 저장하지 않습니다.
+        {locationLibraryEnabled
+          ? "동의한 조회만 좌표를 소수점 4자리로 줄여 최근 10개까지 계정에 저장합니다."
+          : "입력한 좌표는 결과 조회에만 사용하며 저장하지 않습니다."}
       </p>
     </form>
   );

@@ -1,13 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { connection } from "next/server";
+import { getAuthSession } from "@/features/auth/api/get-auth-session";
+import { AccountMenu } from "@/features/auth/components/account-menu";
+import type { AuthSession } from "@/features/auth/types/auth";
+import { getServerObservationRecords } from "@/features/record/api/server-observation-records";
 import { ObservationJournal } from "@/features/record/components/observation-journal";
+import { ServerObservationRecords } from "@/features/record/components/server-observation-records";
 
 export const metadata: Metadata = {
-  title: "로컬 관측 기록",
-  description: "사진과 촬영 정보를 현재 브라우저에만 저장하는 개인 관측 기록입니다.",
+  title: "관측 기록",
+  description: "로컬 사진 기록과 계정 기반 관측 메타데이터를 관리합니다.",
 };
 
-export default function JournalPage() {
+export default async function JournalPage() {
+  await connection();
+  const initialObservedAt = new Date().toISOString();
+  const cookieHeader = (await cookies())
+    .getAll()
+    .map(({ name, value }) => `${name}=${value}`)
+    .join("; ");
+  const authEnabled = process.env.AUTH_ENABLED === "true";
+  const session = authEnabled
+    ? await getAuthSession(cookieHeader)
+    : ({ status: "disabled" } satisfies AuthSession);
+  const recordResult = session.status === "authenticated"
+    ? await getServerObservationRecords(cookieHeader)
+    : undefined;
+
   return (
     <main className="journal-page">
       <nav className="site-nav journal-nav" aria-label="주요 탐색">
@@ -16,11 +37,18 @@ export default function JournalPage() {
           <span>StellaAtlas</span>
         </Link>
         <div className="nav-actions">
-          <span className="milestone-badge">Milestone 7</span>
+          <span className="milestone-badge">Milestone 8</span>
           <Link className="nav-link" href="/sky">밤하늘 시뮬레이션</Link>
           <Link className="nav-link" href="/">관측 조건</Link>
+          <AccountMenu session={session} />
         </div>
       </nav>
+      <ServerObservationRecords
+        enabled={session.status === "authenticated"}
+        initialObservedAt={initialObservedAt}
+        initialRecords={recordResult?.ok ? recordResult.data : []}
+        available={recordResult?.ok ?? true}
+      />
       <ObservationJournal />
     </main>
   );

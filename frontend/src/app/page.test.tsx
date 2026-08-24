@@ -29,7 +29,7 @@ describe("Home", () => {
     expect(
       screen.getByText("Google 로그인 준비 중"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Milestone 7")).toBeInTheDocument();
+    expect(screen.getByText("Milestone 8")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "관측 기록" }),
     ).toHaveAttribute("href", "/journal");
