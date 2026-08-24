@@ -1051,43 +1051,28 @@ Notes
 ## Active Milestone
 
 ```text
-Milestone 8 — OAuth Integration and Location Library
+No active implementation milestone
 ```
 
-Status: Milestone 7 is complete. Milestone 8 started on 2026-08-07.
+Status: Milestone 8 completed on 2026-08-24. Milestone 9 has not started and
+requires explicit activation.
 
 ## Most Recently Completed Milestone Goal
 
-Milestone 7 adds local-first observation posts with image selection or camera
-capture, editable EXIF-assisted time and coordinates, comments and hashtags,
-plus an interactive client-side sky simulation. Posts and image blobs remain in
-the current browser's IndexedDB until server persistence is designed. The
-sky simulation uses the MIT-licensed Astronomy Engine behind a project port and
-a project-owned Canvas renderer. D3-Celestial and Stellarium Web Engine are not
-dependencies.
+Milestone 8 adds verified local Google OAuth, stable internal user UUIDs,
+owner-scoped favorite locations, opt-in recent queried locations with a
+four-decimal coordinate precision and ten-item retention limit, and
+metadata-only authenticated observation records. Server media persistence and
+local IndexedDB post migration remain deferred.
 
 ## Current Scope
 
-Allowed work:
+Until Milestone 9 is explicitly activated, allowed work is limited to fixes,
+verification and documentation for completed milestones. Production deployment,
+server media persistence, social features, notifications and personalized
+recommendations remain out of scope unless separately approved.
 
-- Google OAuth local callback verification and environment configuration;
-- internal user persistence and Google provider identity mapping;
-- favorite observation locations and recent queried location history;
-- authenticated server observation record metadata after its API and storage
-  policy are documented;
-- fixes to the completed local journal and interactive sky simulation;
-- documentation and verification required by Milestone 8.
-
-Out of scope during Milestone 8 unless separately approved:
-
-- server media persistence before storage, upload, validation and migration
-  policies are approved;
-- social networking and community features;
-- notifications and personalized recommendations;
-- public provider-oriented weather or astronomy endpoints;
-- production deployment.
-
-## Milestone 8 Completion Criteria
+## Milestone 8 Completion Criteria — Complete
 
 - local Google OAuth login and callback are verified without committing secrets;
 - Google identities map to stable internal user UUIDs;

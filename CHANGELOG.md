@@ -28,6 +28,8 @@
 - Persisted Google identities against stable internal user UUIDs.
 - Added authenticated favorite-location create, read, and delete APIs with owner-scoped persistence.
 - Connected the sky simulator to authenticated favorite-location save, select, and delete flows.
+- Added opt-in recent queried locations with four-decimal minimization, a ten-item retention limit, reuse, and clear-all controls.
+- Added authenticated metadata-only observation record create, list, and delete flows without server media uploads.
 - MIT-licensed Astronomy Engine integration behind a planetarium domain port.
 - Client-side Canvas sky simulation with time, direction, zoom, and location controls.
 - Curated bright-star and representative-constellation data with deterministic scene tests.
@@ -47,6 +49,7 @@
 - Completed Milestone 6 authentication foundation.
 - Redefined Milestone 7 as local observation journaling and interactive sky simulation, and shifted OAuth/location work and deployment to Milestones 8 and 9.
 - Started Milestone 7 and selected a bounded project-owned Canvas renderer after rejecting D3-Celestial and Stellarium Web Engine integration risks.
+- Completed Milestone 8 OAuth, location-library, and metadata-only account-record scope while deferring server media storage and local-post migration.
 
 ## v0.1.0
 
