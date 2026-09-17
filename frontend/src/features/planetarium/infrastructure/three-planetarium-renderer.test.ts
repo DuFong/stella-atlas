@@ -98,6 +98,9 @@ describe("solar-system visuals", () => {
     expect(pointSizeFor(object("moon", "MOON"))).toBeGreaterThanOrEqual(brightStarSize * 3);
     expect(pointSizeFor(object("mars", "PLANET"))).toBeGreaterThanOrEqual(brightStarSize * 3);
     expect(pointSizeFor(object("saturn", "PLANET"))).toBeLessThanOrEqual(brightStarSize * 4);
+    expect(pointSizeFor(object("sun", "SUN"))).toBeGreaterThan(
+      pointSizeFor(object("moon", "MOON")),
+    );
   });
 });
 

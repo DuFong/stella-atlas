@@ -87,10 +87,31 @@ const STAR_FRAGMENT_SHADER = `
     }
 
     if (vStyle > 0.5 && vStyle < 1.5) {
-      float sunCore = 1.0 - smoothstep(0.0, 0.13, distanceFromCenter);
-      float sunCorona = 1.0 - smoothstep(0.12, 0.5, distanceFromCenter);
-      vec3 sunColor = mix(vec3(1.0, 0.57, 0.16), vec3(1.0, 1.0, 0.9), sunCore);
-      gl_FragColor = vec4(sunColor, max(sunCore, sunCorona * 0.54));
+      float sunDisk = 1.0 - smoothstep(0.39, 0.44, distanceFromCenter);
+      float sunCorona = 1.0 - smoothstep(0.4, 0.5, distanceFromCenter);
+      float limbBrightness = 1.0 - smoothstep(0.08, 0.44, distanceFromCenter) * 0.32;
+      float granulation = noise(floor(gl_PointCoord * 24.0));
+      float largeGranulation = noise(floor(gl_PointCoord * 9.0));
+      float sunspotOne = 1.0 - smoothstep(
+        0.025,
+        0.065,
+        length((gl_PointCoord - vec2(0.61, 0.43)) * vec2(0.72, 1.0))
+      );
+      float sunspotTwo = 1.0 - smoothstep(
+        0.018,
+        0.045,
+        length((gl_PointCoord - vec2(0.38, 0.59)) * vec2(0.8, 1.0))
+      );
+      float sunspots = max(sunspotOne, sunspotTwo) * sunDisk;
+      vec3 sunSurface = vec3(1.0, 0.58, 0.08)
+        * limbBrightness
+        * mix(0.88, 1.12, granulation)
+        * mix(0.94, 1.06, largeGranulation);
+      sunSurface = mix(sunSurface, vec3(0.34, 0.12, 0.025), sunspots * 0.82);
+      vec3 coronaColor = vec3(1.0, 0.72, 0.23);
+      vec3 sunColor = mix(coronaColor, sunSurface, sunDisk);
+      sunColor = mix(sunColor, vec3(0.78, 0.95, 0.35), vSelected * 0.18);
+      gl_FragColor = vec4(sunColor, max(sunDisk, sunCorona * 0.5));
       return;
     }
 
@@ -906,7 +927,7 @@ export function horizontalToCartesian(
 
 export function pointSizeFor(object: SkyObject): number {
   if (object.kind === "SUN") {
-    return 29;
+    return 32;
   }
   if (object.kind === "MOON") {
     return 28;
