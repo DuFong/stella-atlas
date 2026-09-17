@@ -5,17 +5,18 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-**Milestone 8 — OAuth Integration and Location Library**를 완료했습니다.
-Google OAuth와 안정적인 내부 사용자 UUID를 연결하고, 즐겨찾기·동의 기반 최근
-조회 위치, 계정 기반 관측 메타데이터를 구현했습니다. 사진은 계속 브라우저의
-로컬 저널에만 보관합니다.
+**Milestone 9 — Immersive Planetarium**을 시작했습니다. Google OAuth와 위치
+라이브러리를 완성한 Milestone 8 위에서, 기존 2D 천구 지도를 실제 관측자가
+하늘을 올려다보는 감각에 가까운 식별 가능한 플라네타리움으로 고도화합니다.
+Stellarium Web Engine과 WorldWide Telescope의 라이선스·제품 범위·통합 비용을
+검토한 뒤, Three.js 기반 프로젝트 소유 WebGL renderer를 선택했습니다.
 
 ## Technology
 
 | Area | Technology |
 |---|---|
 | Backend | Java 21, Spring Boot 3.5.x, Gradle |
-| Frontend | Node.js 22.23.1, Next.js 16.2.12, TypeScript, Tailwind CSS |
+| Frontend | Node.js 22.23.1, Next.js 16.3.5, TypeScript, Tailwind CSS |
 | Database | PostgreSQL 17, Flyway |
 | Infrastructure | Docker, Docker Compose, GitHub Actions |
 
@@ -153,13 +154,22 @@ npm run build
 `http://localhost:8080`입니다. 브라우저가 백엔드를 직접 호출하지 않으므로
 별도 CORS 설정은 필요하지 않습니다.
 
-Milestone 7의 첫 밤하늘 시뮬레이션은 `/sky`에서 확인할 수 있습니다. 위치와 UTC
-시각을 기준으로 태양·달·주요 행성과 밝은 별의 지평 좌표를 브라우저에서 계산하고
+Milestone 7의 첫 밤하늘 시뮬레이션은 `/sky`에서 확인할 수 있습니다. 위치와 사용자
+로컬 시각을 기준으로 태양·달·주요 행성과 밝은 별의 지평 좌표를 브라우저에서 계산하고
 Canvas에 표시합니다. 이 기능은 서버 API나 추가 `application.yml` 설정을
 사용하지 않습니다. Milestone 8에서는 로그인 사용자가 시뮬레이터의 현재 좌표를
 즐겨찾기에 저장하고, 즐겨찾기와 동의했던 최근 조회 위치를 선택하거나 삭제할 수
 있습니다. 최근 위치는 좌표를 소수점 4자리로 줄여 최신 10개만 저장하며
 시뮬레이션 관측 시각은 저장하지 않습니다.
+
+Milestone 9에서는 기존 Astronomy Engine의 결정적인 천체 위치 계산과
+`PlanetariumEngine` 계약은 유지하고 렌더링 계층을 고도화합니다. 관측자 중심
+투영, 대기와 지평선, 식별 가능한 별·달·행성·별자리, label 우선순위, 천체
+검색·선택과 시간 재생을 단계적으로 추가합니다. AGPL 기반 Stellarium Web
+Engine은 프로젝트 라이선스와 source 제공 의무가 맞지 않아 채택하지 않으며,
+WorldWide Telescope도 연구 data visualization 중심의 범위와 계산 계층 중복 때문에
+채택하지 않습니다. Three.js는 GPU 렌더링에만 사용하고 천체 위치는 기존
+Astronomy Engine이 계속 결정합니다.
 
 로컬 관측 기록은 `/journal`에서 확인할 수 있습니다. 이미지 업로드 또는 지원
 기기의 카메라 촬영, EXIF 촬영 시각·GPS 자동입력, 코멘트·해시태그, 목록·수정·

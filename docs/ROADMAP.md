@@ -132,7 +132,7 @@ Security 기반 인증 경계 및 프런트엔드 로그인 흐름을 준비합�
 현재 구현: `/journal`에서 20MB 이하 이미지 선택, 카메라 촬영, EXIF 촬영 시각·
 GPS 자동입력, 현재 위치 입력, 코멘트·해시태그와 로컬 목록·수정·삭제를 제공하며
 metadata와 Blob을 하나의 IndexedDB 트랜잭션으로 저장합니다. `/sky`에서는 위치·
-UTC 시각 선택, 태양·달·주요 행성, 밝은 별과 대표 별자리, 시간 이동, 방향 회전,
+사용자 로컬 시각 선택, 태양·달·주요 행성, 밝은 별과 대표 별자리, 시간 이동, 방향 회전,
 확대·축소를 제공합니다. 두 기능 모두 서버 저장 없이 브라우저에서 동작하며
 저장소·엔진 adapter와 결정성·오류 상태 테스트를 포함합니다.
 
@@ -162,9 +162,71 @@ callback, 안정적인 내부 사용자 UUID, 소유자 범위 즐겨찾기 API�
 분리한 메타데이터 생성·목록·삭제로 제한했으며 서버 미디어와 로컬 이전은
 후속 정책으로 보류했습니다.
 
-## Milestone 9 — Deployment
+## Milestone 9 — Immersive Planetarium
 
-상태: 시작 전. 명시적인 착수 후 진행합니다.
+목표: Milestone 7의 정확하지만 식별하기 어려운 2D 천구 지도를, 실제 관측자가
+지평선에서 하늘을 올려다보는 감각에 가까운 몰입형 플라네타리움으로
+고도화합니다. 천체 위치 계산의 결정성과 기존 위치 라이브러리는 유지하면서
+렌더링, 탐색과 천체 식별 경험을 개선합니다.
+
+### Phase 1 — Renderer selection and WebGL foundation
+
+- 현재 Canvas 2D 구현을 기준선으로 장면 복잡도, 번들 크기, 초기 로딩,
+  프레임 성능과 모바일 입력을 측정
+- Stellarium Web Engine은 AGPL source 제공 의무, WorldWide Telescope는 연구
+  visualization 중심 범위와 기존 계산 port 중복 때문에 제품 후보에서 제외
+- Three.js 기반 프로젝트 소유 renderer와 명시적인 lifecycle port 구현
+- WebGL 2 미지원, 초기화 실패와 저성능 기기를 위한 fallback 전략 결정
+
+ADR-023에서 Three.js 기반 프로젝트 renderer를 선택했습니다. 기존 Astronomy
+Engine adapter가 계산의 source of truth를 유지하고, Three.js는 observer-space
+투영과 GPU 렌더링만 담당합니다. Canvas 2D는 WebGL 초기화 실패 fallback으로
+유지합니다.
+
+### Phase 2 — Recognizable sky rendering
+
+- 관측자 중심의 반구형 또는 원근 투영과 자연스러운 드래그·확대·축소
+- 조작 버튼을 유지하는 전체화면 보기와 브라우저·viewport 기반 해제 경로
+- 지평선, 방위, 관측 방향, 대기·박명 gradient와 선택 가능한 지상 실루엣
+- 실제 등급과 색지수를 반영한 별 크기·밝기·색상 표현
+- 은하수, 별자리 선·이름과 행성·달의 식별 가능한 시각 표현
+- 확대 수준에 따른 label 밀도, 겹침 방지와 중요 천체 우선순위
+- 천체 선택, 검색, 화면 중앙 정렬과 기본 정보 패널
+- 시간 재생·일시정지와 현재 시각 복귀
+
+### Phase 3 — Quality and accessibility
+
+- 같은 위치·절대 시각에서 계산 결과가 기존 Astronomy Engine adapter와
+  일치하는 결정성 테스트
+- desktop·mobile의 대표 viewport와 입력 방식에 대한 시각 회귀 및 상호작용 테스트
+- 실제 기기 측정으로 확정한 로딩·프레임·메모리 성능 예산
+- `prefers-reduced-motion`, 키보드 조작, 명도 대비와 화면 밖 텍스트 천체 목록
+- catalog·texture·landscape 출처, 라이선스와 attribution 문서화
+
+완료 조건:
+
+- 사용자가 별, 달과 주요 행성을 label 또는 선택 동작으로 쉽게 식별할 수 있습니다.
+- 방향 전환, 확대·축소, 천체 검색·선택과 시간 재생이 desktop과 mobile에서
+  동작합니다.
+- 전체화면에서도 시간, 방향과 확대·축소 조작을 유지하고 명시적인 해제 수단을
+  제공합니다.
+- 지원하는 모바일 브라우저의 전체화면에서는 명시적인 권한 요청, 상대 방향 추적,
+  재보정과 HTTPS·거부·미지원 안내를 갖춘 기기 모션 탐색을 제공합니다.
+- 같은 입력에 대한 천체 위치는 기존 계산 엔진과 일관되고 렌더러 교체가 domain
+  계약을 변경하지 않습니다.
+- 합의한 성능 예산과 접근성 fallback을 테스트로 검증합니다.
+- 채택한 renderer, catalog와 모든 시각 asset의 배포 의무가 ADR 및
+  `THIRD_PARTY_NOTICES.md`에 기록됩니다.
+
+제외 범위: 카메라 영상을 합성하는 센서 기반 AR, 망원경 제어, 천체사진 plate solving, 우주 비행
+시뮬레이션, 자체 대규모 catalog backend, 운영 배포는 포함하지 않습니다.
+
+상태: 진행 중 (2026-08-24 시작). Three.js renderer를 선택하고 WebGL foundation을
+구현 중입니다.
+
+## Milestone 10 — Deployment
+
+상태: 시작 전. Milestone 9 완료 후 명시적으로 착수합니다.
 
 - 운영 배포와 HTTPS
 - 비밀 관리, 모니터링과 백업

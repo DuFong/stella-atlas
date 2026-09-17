@@ -255,6 +255,51 @@ Milestone 7의 최소 범위는 시간 이동, 방향 전환, 확대·축소, �
 표시입니다. 센서 기반 AR, 사진 plate solving, 망원경 제어와 자체 대규모 천체
 카탈로그 서버는 제외합니다.
 
+Milestone 9는 계산 계층을 교체하지 않고 renderer와 interaction 계층을
+고도화합니다. `PlanetariumEngine`은 위치와 절대 시각을 결정적인
+`PlanetariumScene`으로 변환하고, 새 renderer는 scene과 별도로 관리되는 view
+state를 입력받습니다.
+
+```text
+PlanetariumInput ──> Astronomy Engine adapter ──> PlanetariumScene
+                                                     │
+                                                     ▼
+                                       Renderer adapter + ViewState
+                                                     │
+                                                     ▼
+                                      WebGL sky / accessible text fallback
+```
+
+`ViewState`에는 카메라 방향, field of view, label 밀도, 선택 천체와 시간 재생
+상태처럼 화면에만 필요한 값을 둡니다. 천체의 위치나 관측 시각을 renderer가 다시
+계산하지 않으며 React state와 GPU resource lifecycle을 분리합니다. renderer는
+초기화·resize·render·hit-test·dispose 경계를 제공하고 화면 이탈 시 animation
+frame, texture, buffer와 event listener를 해제해야 합니다.
+
+모바일 전체화면의 방향 센서 입력은 renderer가 아니라 별도
+`DeviceOrientationController` adapter가 소유합니다. 첫 유효 센서 자세를 현재
+`ViewState`의 기준으로 잡고 quaternion으로 화면 방향을 투영한 뒤 보간된 방위와
+고도만 React state에 전달합니다. 권한 요청은 사용자 조작 안에서 수행하고 HTTPS,
+권한 거부와 미지원 상태를 UI로 설명합니다. 전체화면 종료나 component unmount 시
+센서 listener와 animation frame을 해제하며, 카메라 영상 합성 AR은 포함하지
+않습니다.
+
+ADR-023은 Three.js 기반 프로젝트 소유 renderer를 선택했습니다. Stellarium Web
+Engine은 AGPL source 제공 의무, WorldWide Telescope는 연구 data visualization
+중심의 넓은 기능 범위, 자체 ephemeris와 React가 아닌 고수준 통합 모델 때문에
+채택하지 않습니다.
+
+`ThreePlanetariumRenderer`는 Three.js scene, camera, buffer, shader와 GPU resource
+lifecycle을 직접 소유합니다. React component는 renderer 내부 object를 state로
+보관하지 않고 `PlanetariumScene`과 `ViewState` 변경만 전달합니다. 초기 별과
+태양계 천체는 point buffer, 별자리와 지평선은 line buffer로 묶어 draw call을
+제한합니다. WebGL 2 초기화나 context 유지에 실패하면 별도 Canvas element에서
+기존 2D renderer를 다시 초기화하고 텍스트 천체 목록을 계속 제공합니다.
+
+평가는 실제 desktop·mobile에서 초기 로딩, 지속 frame time, 메모리, bundle,
+input latency와 접근성 fallback을 측정합니다. 최종 성능 예산은 WebGL foundation
+측정 뒤 확정합니다.
+
 ---
 
 ## 6. Recommended Internal Structure

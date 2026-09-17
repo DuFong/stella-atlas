@@ -1763,6 +1763,9 @@ textarea {
 
 .sky-simulator {
   display: grid;
+  grid-template-areas:
+    "view"
+    "controls";
   width: min(100% - 40px, 1240px);
   margin-inline: auto;
   gap: 20px;
@@ -1779,6 +1782,7 @@ textarea {
 }
 
 .sky-control-panel {
+  grid-area: controls;
   display: grid;
   align-content: start;
   gap: 15px;
@@ -1951,6 +1955,8 @@ textarea {
 }
 
 .sky-view-panel {
+  position: relative;
+  grid-area: view;
   padding: 18px;
 }
 
@@ -1985,7 +1991,101 @@ textarea {
   padding: 6px 9px;
 }
 
+.sky-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sky-fullscreen-enter,
+.sky-fullscreen-exit {
+  min-height: 38px;
+  border: 1px solid rgb(145 201 255 / 24%);
+  border-radius: 11px;
+  padding: 0 12px;
+  background: rgb(145 201 255 / 9%);
+  color: var(--sky-300);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.sky-fullscreen-enter:hover,
+.sky-fullscreen-exit:hover {
+  background: rgb(145 201 255 / 15%);
+}
+
+.sky-fullscreen-enter:focus-visible,
+.sky-fullscreen-exit:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
+}
+
+.sky-fullscreen-exit {
+  position: absolute;
+  z-index: 3;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+}
+
+.sky-view-panel--fullscreen,
+.sky-view-panel:fullscreen {
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: #050914;
+}
+
+.sky-view-panel--viewport {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+}
+
+.sky-view-panel--fullscreen .sky-view-heading {
+  position: absolute;
+  z-index: 3;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  padding: 0;
+}
+
+.sky-view-panel--fullscreen .sky-view-stats {
+  display: flex;
+  gap: 5px;
+  color: rgb(255 255 255 / 68%);
+}
+
+.sky-view-panel--fullscreen .sky-view-stats span {
+  border-color: rgb(145 201 255 / 15%);
+  padding: 6px 8px;
+  background: rgb(5 9 20 / 58%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.sky-view-panel--fullscreen .sky-canvas-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.sky-view-panel--fullscreen .sky-canvas {
+  min-height: 0;
+}
+
 .sky-canvas-shell {
+  position: relative;
   display: grid;
   min-height: 360px;
   overflow: hidden;
@@ -1993,6 +2093,23 @@ textarea {
   border: 1px solid rgb(145 201 255 / 13%);
   border-radius: 20px;
   background: #050914;
+}
+
+.sky-renderer-notice {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 50%;
+  margin: 0;
+  border: 1px solid rgb(145 201 255 / 18%);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgb(5 9 20 / 82%);
+  color: rgb(255 255 255 / 62%);
+  font-size: 0.68rem;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .sky-canvas {
@@ -2023,6 +2140,79 @@ textarea {
   min-height: 38px;
   padding: 0 8px;
   font-size: 0.7rem;
+}
+
+.sky-toolbar-icon {
+  display: none;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar {
+  position: absolute;
+  z-index: 3;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  gap: 4px;
+  margin: 0;
+  border: 1px solid rgb(145 201 255 / 14%);
+  border-radius: 999px;
+  padding: 6px;
+  overflow-x: auto;
+  background: rgb(5 9 20 / 58%);
+  box-shadow: 0 10px 35px rgb(0 0 0 / 28%);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  transform: translateX(-50%);
+  scrollbar-width: none;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar button {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  background: rgb(145 201 255 / 8%);
+}
+
+.sky-view-panel--fullscreen .sky-toolbar button.sky-motion-button--active {
+  border-color: rgb(145 201 255 / 48%);
+  background: rgb(145 201 255 / 22%);
+  color: #fff;
+  box-shadow: 0 0 18px rgb(145 201 255 / 18%);
+}
+
+.sky-view-panel--fullscreen .sky-toolbar-icon {
+  display: inline;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar-label {
+  display: none;
+}
+
+.sky-motion-status {
+  position: absolute;
+  z-index: 3;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 58px);
+  max-width: min(360px, calc(100% - 28px));
+  margin: 0;
+  border: 1px solid rgb(145 201 255 / 18%);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: rgb(5 9 20 / 76%);
+  color: rgb(255 255 255 / 76%);
+  font-size: 0.72rem;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .sky-time-readout {
@@ -2207,7 +2397,7 @@ textarea {
   }
 
   .sky-toolbar {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   .hero-grid {
@@ -2249,6 +2439,7 @@ textarea {
 
 @media (min-width: 1040px) {
   .sky-simulator {
+    grid-template-areas: "controls view";
     grid-template-columns: minmax(300px, 0.38fr) minmax(0, 0.62fr);
     align-items: start;
   }

@@ -414,9 +414,11 @@ presigned upload 방식, 용량 제한, 악성 파일 검사와 로컬 데이터
 별도로 확정할 때까지 구현하지 않습니다. 브라우저 schema를 공개 API로 복사하지
 않으며 로컬 사진은 서버로 전송하지 않습니다.
 
-천체 관측 시뮬레이션도 Milestone 7에서는 프런트엔드 엔진으로 실행합니다. 기존
-`GET /api/v1/observations`를 플라네타리움 공급자 endpoint로 확장하거나 대규모
-별 카탈로그를 Spring Boot 응답에 포함하지 않습니다.
+천체 관측 시뮬레이션은 Milestone 7에 이어 Milestone 9에서도 프런트엔드
+계산·렌더링으로 유지합니다. 기존 `GET /api/v1/observations`를 플라네타리움
+공급자 endpoint로 확장하거나 대규모 별 카탈로그를 Spring Boot 응답에 포함하지
+않습니다. M9 technology spike에서 원격 catalog가 필요한 후보를 검토할 때는
+출처, cache, 개인정보, 장애와 fallback 계약을 별도로 승인합니다.
 
 ---
 

@@ -566,8 +566,8 @@ sky-culture 파생 번역과 서로 다른 출처가 섞여 있어 코드 라이
 - 초기 별 catalog는 밝은 별과 오리온자리, 큰곰자리, 여름철 대삼각형에 필요한
   작은 J2000 좌표 목록으로 제한합니다. 대규모 catalog나 sky-culture data는
   출처와 재배포 조건을 별도 승인한 뒤 추가합니다.
-- 시뮬레이션 시각은 첫 구현에서 UTC로 명시하고 서버 설정 없이 브라우저에서
-  계산합니다.
+- 시뮬레이션 시각은 브라우저의 IANA 로컬 시간대로 표시·입력하고 절대 시각으로
+  변환해 서버 설정 없이 브라우저에서 계산합니다.
 
 ### Consequences
 
@@ -654,3 +654,145 @@ Milestone 8은 로그인 사용자가 위치와 관측 기록을 기기 밖에�
   오해하면 안 됩니다.
 - 서버 미디어 도입 시 별도의 API, object storage, 검증·보존·삭제와 명시적인
   migration 결정을 추가해야 합니다.
+
+---
+
+## ADR-022 — Immersive Planetarium Before Deployment
+
+- Status: Accepted
+- Date: 2026-08-24
+
+### Context
+
+Milestone 7의 Canvas 2D 천구 지도는 좌표와 시각에 따른 천체 위치를 정확하고
+결정적으로 표시하지만, 별·달·행성을 실제 하늘처럼 구분하고 원하는 천체를
+찾기에는 시각적 단서와 상호작용이 부족합니다. 운영 배포보다 핵심 관측 경험의
+식별성을 먼저 개선할 필요가 있습니다.
+
+Stellarium Web Engine은 WebGL renderer, 대기, Gaia 별 catalog, HiPS, 행성
+texture, 별자리와 landscape를 제공해 목표 경험에 가깝지만 AGPL-3.0입니다.
+WorldWide Telescope의 WebGL engine은 MIT 기반이지만 연구 영상과 Vue/Pinia를
+포함한 넓은 생태계여서 StellaAtlas의 Next.js UI에 필요한 통합 범위를 검증해야
+합니다. Three.js는 MIT 기반의 범용 renderer여서 기존 domain port를 보존하기
+쉽지만 천문 투영과 모든 시각 asset·최적화를 프로젝트가 책임져야 합니다.
+
+### Decision
+
+- 기존 Deployment 마일스톤을 Milestone 10으로 이동하고 Milestone 9를
+  `Immersive Planetarium`으로 정의합니다.
+- Milestone 9는 dependency를 먼저 선택하지 않고 동일 시나리오의 작은 prototype
+  세 개를 비교하는 technology spike로 시작합니다.
+- 후보는 Stellarium Web Engine, WorldWide Telescope WebGL engine, Three.js 기반
+  프로젝트 renderer입니다.
+- 비교 기준은 천체 식별성, observer-centered navigation, 번들·network data,
+  초기 로딩, 지속 frame time, memory, mobile input, 접근성 fallback, Next.js
+  통합 비용, 유지보수와 전체 asset license입니다.
+- `PlanetariumEngine`과 Astronomy Engine adapter는 천체 계산의 source of truth로
+  유지합니다. renderer가 천체 위치를 독립적으로 다시 계산하지 않습니다.
+- AGPL renderer는 프로젝트 라이선스, network 사용 시 source 제공 의무와 배포
+  방식을 명시적으로 승인하기 전에는 제품 dependency로 채택하지 않습니다.
+- 최종 renderer 선택, 성능 예산과 catalog·texture 배포 방식은 spike 결과를 담은
+  후속 ADR에서 확정합니다.
+
+### Consequences
+
+- 운영 배포는 한 마일스톤 늦어지지만 핵심 사용 경험을 배포 전에 검증할 수
+  있습니다.
+- 현재 Canvas 2D renderer는 spike와 fallback의 비교 기준으로 유지됩니다.
+- 계산 port와 renderer lifecycle을 분리하므로 후보를 교체해도 관측 위치·시각
+  계약과 기존 결정성 테스트를 재사용할 수 있습니다.
+- 사실적인 표현에는 catalog와 texture가 필요하므로 코드 라이선스만이 아니라
+  데이터 출처, attribution, CDN·self-hosting과 offline 동작까지 검토해야 합니다.
+- 성능 수치는 임의로 정하지 않고 대표 desktop·mobile prototype 측정 후
+  확정합니다.
+
+### Primary References
+
+- Stellarium Web Engine repository and AGPL-3.0 license:
+  <https://github.com/Stellarium/stellarium-web-engine>
+- WorldWide Telescope WebGL engine and MIT license:
+  <https://github.com/WorldWideTelescope/wwt-webgl-engine>
+- Three.js WebGL documentation and MIT license:
+  <https://threejs.org/docs/pages/WebGL.html>
+  <https://github.com/mrdoob/three.js/blob/dev/LICENSE>
+
+---
+
+## ADR-023 — Project-Owned Three.js Planetarium Renderer
+
+- Status: Accepted
+- Date: 2026-09-15
+
+### Context
+
+ADR-022는 M9 renderer 후보로 Stellarium Web Engine, WorldWide Telescope와
+Three.js 기반 프로젝트 renderer를 제시했습니다. Stellarium Web Engine의
+AGPL-3.0 source 제공 의무는 현재 프로젝트 배포 정책과 맞지 않습니다.
+WorldWide Telescope는 MIT이지만 survey imagery, 연구 data layer와 자체
+ephemeris를 포함한 범용 천문 시각화 플랫폼입니다. React/Next.js에서 저수준
+singleton engine 또는 Vue/Pinia wrapper를 통합해야 하고, 기존 Astronomy Engine을
+천체 위치의 source of truth로 유지하기 어렵습니다.
+
+### Decision
+
+- M9 renderer는 MIT 라이선스의 `three:0.186.0`을 WebGL 2 기반으로 사용하고
+  플라네타리움 scene, interaction과 shader는 StellaAtlas가 소유합니다.
+- React Three Fiber는 도입하지 않습니다. imperative renderer adapter가 Three.js
+  scene, GPU resource와 lifecycle을 관리하고 React는 입력과 접근 가능한 UI
+  state만 관리합니다.
+- 기존 `PlanetariumEngine`과 Astronomy Engine adapter가 천체 위치 계산의 유일한
+  기준입니다. renderer는 고도·방위를 observer-space vector로 투영만 합니다.
+- 별과 태양계 천체는 하나의 point buffer와 shader에서 크기·색상을 표현하고,
+  별자리와 지평선은 별도의 line buffer로 렌더링합니다.
+- WebGL 2 초기화 또는 context 유지에 실패하면 기존 Canvas 2D renderer와 텍스트
+  천체 목록을 fallback으로 유지합니다.
+- 모바일 방향 센서는 renderer와 분리한 interaction adapter에서만 처리합니다.
+  전체화면의 사용자 조작으로 권한을 요청하고 첫 자세를 현재 view의 상대 기준으로
+  사용하며, 전체화면 종료 시 센서 listener를 해제합니다.
+- catalog, texture와 landscape는 renderer dependency와 별도로 출처·재배포 조건을
+  승인한 뒤 추가합니다.
+
+### Consequences
+
+- WorldWide Telescope와 Stellarium Web Engine의 UI, catalog, asset과 천문 계산에
+  결합되지 않고 현재 domain 계약을 유지할 수 있습니다.
+- 투영, label 배치, picking, shader, mobile 최적화와 GPU resource 해제는 프로젝트가
+  직접 구현하고 검증해야 합니다.
+- Three.js의 현재 `WebGLRenderer`가 WebGL 2만 지원하므로 Canvas fallback은 제품
+  기능으로 계속 유지합니다.
+- 방향 센서 탐색에는 HTTPS와 사용자 권한이 필요하고 절대 나침반의 환경별 오차에
+  의존하지 않도록 사용자가 재보정할 수 있는 상대 방향 추적을 기본으로 합니다.
+- WebGPU는 M9의 초기 renderer 범위에 포함하지 않고 WebGL 2 성능 측정 후 별도
+  결정합니다.
+
+### Primary References
+
+- Three.js `WebGLRenderer`: <https://threejs.org/docs/pages/WebGLRenderer.html>
+- Three.js license: <https://github.com/mrdoob/three.js/blob/dev/LICENSE>
+
+---
+
+## ADR-024 — Frontend Security Patch Versions During M9
+
+- Status: Accepted
+- Date: 2026-09-15
+
+### Context
+
+Three.js 설치 후 전체 dependency audit에서 기존 Next.js 16.2.12와 Sharp 0.35.3에
+critical/high advisory가 확인됐고 js-yaml 4.3.1과 Vitest 4.1.10에도 수정 가능한
+advisory가 확인됐습니다. Three.js 자체에서는 알려진 취약점이 보고되지 않았습니다.
+
+### Decision
+
+- Next.js와 `eslint-config-next`를 16.3.5, Vitest를 4.1.11로 갱신합니다.
+- 기존 transitive override의 Sharp를 0.35.4, js-yaml을 4.3.2로 갱신합니다.
+- Next.js가 route module export를 엄격하게 검증하므로 `HomeContent`를 `page.tsx`의
+  named export에서 observation feature component로 이동합니다.
+
+### Consequences
+
+- `npm audit --audit-level=high`가 알려진 취약점 없이 통과합니다.
+- 홈 route는 data orchestration만 담당하고 표현 component는 feature package에
+  위치해 App Router 계약과도 일치합니다.
+- 다음 dependency 변경에서도 audit 결과와 production build를 함께 검증합니다.

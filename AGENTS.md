@@ -153,7 +153,8 @@ Milestone 5 — Observation Score
 Milestone 6 — Authentication Foundation
 Milestone 7 — Observation Journal and Sky Simulation
 Milestone 8 — OAuth Integration and Location Library
-Milestone 9 — Deployment
+Milestone 9 — Immersive Planetarium
+Milestone 10 — Deployment
 ```
 
 Codex must not implement future milestone features unless explicitly requested.
@@ -1051,11 +1052,10 @@ Notes
 ## Active Milestone
 
 ```text
-No active implementation milestone
+Milestone 9 — Immersive Planetarium
 ```
 
-Status: Milestone 8 completed on 2026-08-24. Milestone 9 has not started and
-requires explicit activation.
+Status: Milestone 8 completed on 2026-08-24. Milestone 9 started on 2026-08-24.
 
 ## Most Recently Completed Milestone Goal
 
@@ -1067,10 +1067,35 @@ local IndexedDB post migration remain deferred.
 
 ## Current Scope
 
-Until Milestone 9 is explicitly activated, allowed work is limited to fixes,
-verification and documentation for completed milestones. Production deployment,
-server media persistence, social features, notifications and personalized
-recommendations remain out of scope unless separately approved.
+Allowed work:
+
+- the selected Three.js-based project-owned WebGL renderer and its performance
+  verification;
+- immersive observer-centered sky rendering behind the existing planetarium port;
+- recognizable stars, planets, Moon, Milky Way, constellations and horizon cues;
+- object search, selection, focus, label prioritization and time playback;
+- performance, accessibility, fallback, catalog and asset-license verification;
+- fixes and documentation required to complete Milestone 9.
+
+Out of scope during Milestone 9 unless separately approved:
+
+- adopting AGPL software before project-license and source-distribution approval;
+- sensor-based AR, telescope control and astrophotography plate solving;
+- a server-hosted large astronomical catalog;
+- server media persistence, social features and personalized recommendations;
+- production deployment, which moved to Milestone 10.
+
+## Milestone 9 Completion Criteria
+
+- users can identify stars, the Moon and major planets through labels or selection;
+- observer-centered navigation, zoom, search, selection and time playback work on
+  representative desktop and mobile inputs;
+- astronomical positions remain deterministic and consistent with the existing
+  Astronomy Engine adapter;
+- the selected renderer meets measured performance and accessibility budgets and
+  has a non-WebGL or initialization-failure fallback;
+- renderer, catalog, texture and landscape licenses and attribution are documented;
+- relevant frontend verification and visual regression checks pass.
 
 ## Milestone 8 Completion Criteria — Complete
 

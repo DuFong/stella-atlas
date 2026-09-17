@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { HomeContent } from "./page";
+import { HomeContent } from "@/features/observation/components/home-content";
 
 describe("Home", () => {
   it("shows the observation query form before a search", () => {
@@ -29,7 +29,7 @@ describe("Home", () => {
     expect(
       screen.getByText("Google 로그인 준비 중"),
     ).toBeInTheDocument();
-    expect(screen.getByText("Milestone 8")).toBeInTheDocument();
+    expect(screen.getByText("Milestone 9")).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "관측 기록" }),
     ).toHaveAttribute("href", "/journal");

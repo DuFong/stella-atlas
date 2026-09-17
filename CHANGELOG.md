@@ -36,6 +36,9 @@
 - Local observation journal with image upload, camera capture, EXIF-assisted fields, comments, and hashtags.
 - Atomic IndexedDB post and image persistence with local list, edit, and delete flows.
 - Explicit camera permission, missing metadata, unsupported Canvas, and storage failure states.
+- Project-owned Three.js WebGL planetarium foundation with observer-centered navigation and Canvas fallback.
+- Edge-to-edge fullscreen sky viewing with translucent overlay controls and an iPhone Safari viewport fallback.
+- Permission-gated mobile orientation controls with relative sky tracking, smoothing, recalibration, and secure-context guidance.
 
 ### Changed
 
@@ -50,6 +53,9 @@
 - Redefined Milestone 7 as local observation journaling and interactive sky simulation, and shifted OAuth/location work and deployment to Milestones 8 and 9.
 - Started Milestone 7 and selected a bounded project-owned Canvas renderer after rejecting D3-Celestial and Stellarium Web Engine integration risks.
 - Completed Milestone 8 OAuth, location-library, and metadata-only account-record scope while deferring server media storage and local-post migration.
+- Redefined Milestone 9 as immersive planetarium rendering and moved production deployment to Milestone 10.
+- Selected a project-owned Three.js renderer after excluding Stellarium and WorldWide Telescope integration.
+- Updated vulnerable frontend patch dependencies while adding the M9 renderer foundation.
 
 ## v0.1.0
 

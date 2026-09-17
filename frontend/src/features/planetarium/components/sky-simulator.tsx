@@ -5,7 +5,9 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type FormEvent,
+  type KeyboardEvent as ReactKeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type WheelEvent as ReactWheelEvent,
 } from "react";
@@ -14,11 +16,23 @@ import type {
   SkyObject,
 } from "@/features/planetarium/domain/planetarium";
 import { AstronomyEnginePlanetarium } from "@/features/planetarium/infrastructure/astronomy-engine-planetarium";
+import type { PlanetariumRenderer } from "@/features/planetarium/infrastructure/planetarium-renderer";
+import { ThreePlanetariumRenderer } from "@/features/planetarium/infrastructure/three-planetarium-renderer";
+import {
+  DeviceOrientationController,
+  type OrientationController,
+  type OrientationView,
+} from "@/features/planetarium/infrastructure/device-orientation-controller";
 import type { FavoriteLocation } from "@/features/location/types/favorite-location";
 import type { RecentLocation } from "@/features/location/types/recent-location";
 
 const DEFAULT_LATITUDE = "37.5665";
 const DEFAULT_LONGITUDE = "126.9780";
+const DEFAULT_VIEW_ALTITUDE = 28;
+
+type RenderBackend = "webgl" | "canvas2d" | "unsupported";
+type FullscreenMode = "native" | "viewport" | null;
+type MotionStatus = "idle" | "requesting" | "active" | "denied" | "insecure" | "unsupported";
 
 export function SkySimulator({
   initialObservedAt,
@@ -27,6 +41,8 @@ export function SkySimulator({
   favoriteLocationsAvailable = true,
   initialRecentLocations = [],
   recentLocationsAvailable = true,
+  createRenderer = createDefaultRenderer,
+  createOrientationController = createDefaultOrientationController,
 }: {
   initialObservedAt: string;
   initialFavoriteLocations?: FavoriteLocation[];
@@ -34,15 +50,34 @@ export function SkySimulator({
   favoriteLocationsAvailable?: boolean;
   initialRecentLocations?: RecentLocation[];
   recentLocationsAvailable?: boolean;
+  createRenderer?: () => PlanetariumRenderer;
+  createOrientationController?: () => OrientationController;
 }) {
   const engine = useMemo(() => new AstronomyEnginePlanetarium(), []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const dragRef = useRef<{ pointerX: number; bearing: number } | null>(null);
+  const skyViewRef = useRef<HTMLElement>(null);
+  const rendererRef = useRef<PlanetariumRenderer | null>(null);
+  const orientationControllerRef = useRef<OrientationController | null>(null);
+  const viewRef = useRef<OrientationView>({
+    bearingDegrees: 0,
+    altitudeDegrees: DEFAULT_VIEW_ALTITUDE,
+  });
+  const fullscreenModeRef = useRef<FullscreenMode>(null);
+  const dragRef = useRef<{
+    pointerX: number;
+    pointerY: number;
+    bearing: number;
+    viewAltitude: number;
+  } | null>(null);
   const [latitude, setLatitude] = useState(DEFAULT_LATITUDE);
   const [longitude, setLongitude] = useState(DEFAULT_LONGITUDE);
-  const [dateTime, setDateTime] = useState(() =>
-    toUtcDateTimeValue(new Date(initialObservedAt)),
+  const browserReady = useSyncExternalStore(subscribeToBrowser, () => true, () => false);
+  const [selectedDateTime, setDateTime] = useState<string | null>(null);
+  const initialDate = new Date(initialObservedAt);
+  const dateTime = selectedDateTime ?? (
+    browserReady ? toLocalDateTimeValue(initialDate) : toUtcDateTimeValue(initialDate)
   );
+  const timeZone = browserReady ? browserTimeZone() : "UTC";
   const [scene, setScene] = useState<PlanetariumScene>(() =>
     engine.calculate({
       latitude: Number(DEFAULT_LATITUDE),
@@ -51,8 +86,11 @@ export function SkySimulator({
     }),
   );
   const [bearing, setBearing] = useState(0);
+  const [viewAltitude, setViewAltitude] = useState(DEFAULT_VIEW_ALTITUDE);
   const [zoom, setZoom] = useState(1);
-  const [canvasSupported, setCanvasSupported] = useState(true);
+  const [renderBackend, setRenderBackend] = useState<RenderBackend>("webgl");
+  const [fullscreenMode, setFullscreenMode] = useState<FullscreenMode>(null);
+  const [motionStatus, setMotionStatus] = useState<MotionStatus>("idle");
   const [message, setMessage] = useState(
     "서울 좌표를 기준으로 현재 하늘을 표시합니다.",
   );
@@ -77,22 +115,167 @@ export function SkySimulator({
   );
 
   useEffect(() => {
-    if (!canvasRef.current) {
+    viewRef.current = {
+      bearingDegrees: bearing,
+      altitudeDegrees: viewAltitude,
+    };
+  }, [bearing, viewAltitude]);
+
+  useEffect(() => {
+    fullscreenModeRef.current = fullscreenMode;
+  }, [fullscreenMode]);
+
+  useEffect(() => () => orientationControllerRef.current?.stop(), []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const nativeFullscreen = document.fullscreenElement === skyViewRef.current;
+      if (!nativeFullscreen && fullscreenModeRef.current === "native") {
+        stopMotionControl();
+        setFullscreenMode(null);
+      } else if (nativeFullscreen) {
+        setFullscreenMode("native");
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  useEffect(() => {
+    if (fullscreenMode !== "viewport") {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    const handleEscape = (event: globalThis.KeyboardEvent) => {
+      if (event.key === "Escape") {
+        stopMotionControl();
+        setFullscreenMode(null);
+      }
+    };
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [fullscreenMode]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || renderBackend !== "webgl") {
       return;
     }
 
+    const renderer = createRenderer();
+    let contextLost = false;
+    const handleContextLost = (event: Event) => {
+      event.preventDefault();
+      contextLost = true;
+      setRenderBackend("canvas2d");
+    };
+    canvas.addEventListener("webglcontextlost", handleContextLost);
+    try {
+      renderer.initialize(canvas);
+      if (contextLost) {
+        throw new Error("WebGL context was lost during initialization.");
+      }
+      rendererRef.current = renderer;
+    } catch {
+      canvas.removeEventListener("webglcontextlost", handleContextLost);
+      renderer.dispose();
+      const fallbackTimer = window.setTimeout(
+        () => setRenderBackend("canvas2d"),
+        0,
+      );
+      return () => window.clearTimeout(fallbackTimer);
+    }
+
+    return () => {
+      canvas.removeEventListener("webglcontextlost", handleContextLost);
+      renderer.dispose();
+      if (rendererRef.current === renderer) {
+        rendererRef.current = null;
+      }
+    };
+  }, [createRenderer, renderBackend]);
+
+  useEffect(() => {
+    if (renderBackend !== "webgl" || !rendererRef.current) {
+      return;
+    }
+    try {
+      rendererRef.current.updateScene(scene);
+      rendererRef.current.render();
+    } catch {
+      const fallbackTimer = window.setTimeout(
+        () => setRenderBackend("canvas2d"),
+        0,
+      );
+      return () => window.clearTimeout(fallbackTimer);
+    }
+  }, [renderBackend, scene]);
+
+  useEffect(() => {
+    if (renderBackend !== "webgl" || !rendererRef.current) {
+      return;
+    }
+    try {
+      rendererRef.current.updateView({
+        altitudeDegrees: viewAltitude,
+        bearingDegrees: bearing,
+        fieldOfViewDegrees: 90 / zoom,
+      });
+      rendererRef.current.render();
+    } catch {
+      const fallbackTimer = window.setTimeout(
+        () => setRenderBackend("canvas2d"),
+        0,
+      );
+      return () => window.clearTimeout(fallbackTimer);
+    }
+  }, [bearing, renderBackend, viewAltitude, zoom]);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
-    const render = () => setCanvasSupported(drawScene(canvas, scene, bearing, zoom));
+    if (!canvas || renderBackend !== "webgl" || !rendererRef.current) {
+      return;
+    }
+    const renderer = rendererRef.current;
+    const resize = () => {
+      try {
+        const { width, height } = measureSkyCanvas(canvas);
+        canvas.style.height = `${height}px`;
+        renderer.resize(width, height, window.devicePixelRatio || 1);
+        renderer.render();
+      } catch {
+        setRenderBackend("canvas2d");
+      }
+    };
+    resize();
+    window.addEventListener("resize", resize);
+    return () => window.removeEventListener("resize", resize);
+  }, [fullscreenMode, renderBackend]);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || renderBackend !== "canvas2d") {
+      return;
+    }
+    const render = () => {
+      if (!drawScene(canvas, scene, bearing, zoom)) {
+        setRenderBackend("unsupported");
+      }
+    };
     render();
     window.addEventListener("resize", render);
     return () => window.removeEventListener("resize", render);
-  }, [bearing, scene, zoom]);
+  }, [bearing, fullscreenMode, renderBackend, scene, zoom]);
 
   function updateScene(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const parsedLatitude = Number(latitude);
     const parsedLongitude = Number(longitude);
-    const observedAt = new Date(`${dateTime}:00Z`);
+    const observedAt = new Date(dateTime);
 
     try {
       setScene(
@@ -103,6 +286,7 @@ export function SkySimulator({
         }),
       );
       setMessage("선택한 위치와 시각의 하늘로 갱신했습니다.");
+      revealSkyOnNarrowScreen();
     } catch {
       setMessage("위치와 시각을 다시 확인해 주세요.");
     }
@@ -274,13 +458,84 @@ export function SkySimulator({
         engine.calculate({
           latitude: nextLatitude,
           longitude: nextLongitude,
-          observedAt: new Date(`${dateTime}:00Z`),
+          observedAt: new Date(dateTime),
         }),
       );
       setMessage(successMessage);
+      revealSkyOnNarrowScreen();
     } catch {
       setMessage("위치와 시각을 다시 확인해 주세요.");
     }
+  }
+
+  function revealSkyOnNarrowScreen() {
+    if (window.innerWidth >= 1040) {
+      return;
+    }
+    skyViewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  async function enterFullscreen() {
+    const skyView = skyViewRef.current;
+    if (!skyView) {
+      return;
+    }
+    if (skyView.requestFullscreen) {
+      try {
+        await skyView.requestFullscreen();
+        return;
+      } catch {
+        // iPhone Safari may expose the API while rejecting non-video elements.
+      }
+    }
+    setFullscreenMode("viewport");
+  }
+
+  async function exitFullscreen() {
+    if (fullscreenMode === "native" && document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch {
+        // Keep the in-page exit control effective if the browser rejects the request.
+      }
+    }
+    stopMotionControl();
+    setFullscreenMode(null);
+  }
+
+  function stopMotionControl() {
+    orientationControllerRef.current?.stop();
+    orientationControllerRef.current = null;
+    setMotionStatus("idle");
+  }
+
+  async function toggleMotionControl() {
+    if (motionStatus === "active") {
+      stopMotionControl();
+      return;
+    }
+
+    setMotionStatus("requesting");
+    const controller = createOrientationController();
+    const result = await controller.start(viewRef.current, (view) => {
+      viewRef.current = view;
+      setBearing(view.bearingDegrees);
+      setViewAltitude(view.altitudeDegrees);
+    });
+    if (result === "started" && fullscreenModeRef.current) {
+      orientationControllerRef.current?.stop();
+      orientationControllerRef.current = controller;
+      setMotionStatus("active");
+      return;
+    }
+
+    controller.stop();
+    setMotionStatus(result === "started" ? "idle" : result);
+  }
+
+  function recalibrateMotionControl() {
+    orientationControllerRef.current?.recalibrate(viewRef.current);
+    setMotionStatus("active");
   }
 
   function shiftTime(hours: number) {
@@ -291,20 +546,41 @@ export function SkySimulator({
       observedAt: shifted,
     });
     setScene(nextScene);
-    setDateTime(toUtcDateTimeValue(shifted));
+    setDateTime(toLocalDateTimeValue(shifted));
+  }
+
+  function showCurrentTime() {
+    const currentTime = new Date();
+    setScene(
+      engine.calculate({
+        latitude: scene.latitude,
+        longitude: scene.longitude,
+        observedAt: currentTime,
+      }),
+    );
+    setDateTime(toLocalDateTimeValue(currentTime));
   }
 
   function startDragging(event: ReactPointerEvent<HTMLCanvasElement>) {
     event.currentTarget.setPointerCapture(event.pointerId);
-    dragRef.current = { pointerX: event.clientX, bearing };
+    dragRef.current = {
+      pointerX: event.clientX,
+      pointerY: event.clientY,
+      bearing,
+      viewAltitude,
+    };
   }
 
   function dragSky(event: ReactPointerEvent<HTMLCanvasElement>) {
     if (!dragRef.current) {
       return;
     }
-    const delta = (dragRef.current.pointerX - event.clientX) * 0.35;
-    setBearing(normalizeDegrees(dragRef.current.bearing + delta));
+    const bearingDelta = (dragRef.current.pointerX - event.clientX) * 0.24;
+    const altitudeDelta = (event.clientY - dragRef.current.pointerY) * 0.18;
+    setBearing(normalizeDegrees(dragRef.current.bearing + bearingDelta));
+    setViewAltitude(
+      clamp(dragRef.current.viewAltitude + altitudeDelta, 0, 85),
+    );
   }
 
   function stopDragging(event: ReactPointerEvent<HTMLCanvasElement>) {
@@ -319,6 +595,26 @@ export function SkySimulator({
     setZoom((current) => clamp(current + (event.deltaY < 0 ? 0.15 : -0.15), 1, 2.5));
   }
 
+  function navigateSky(event: ReactKeyboardEvent<HTMLCanvasElement>) {
+    if (event.key === "ArrowLeft" || event.key === "ArrowRight") {
+      event.preventDefault();
+      setBearing((current) =>
+        normalizeDegrees(current + (event.key === "ArrowLeft" ? -5 : 5)),
+      );
+    } else if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+      event.preventDefault();
+      setViewAltitude((current) =>
+        clamp(current + (event.key === "ArrowUp" ? 5 : -5), 0, 85),
+      );
+    } else if (event.key === "+" || event.key === "=") {
+      event.preventDefault();
+      setZoom((current) => clamp(current + 0.15, 1, 2.5));
+    } else if (event.key === "-") {
+      event.preventDefault();
+      setZoom((current) => clamp(current - 0.15, 1, 2.5));
+    }
+  }
+
   const visibleObjects = scene.objects
     .filter((object) => object.altitudeDegrees >= 0)
     .sort((left, right) => right.altitudeDegrees - left.altitudeDegrees);
@@ -330,8 +626,8 @@ export function SkySimulator({
           <p className="eyebrow">SKY CONTROLS</p>
           <h1>관측할 밤하늘을 미리 둘러보세요.</h1>
           <p>
-            위치와 시각을 바꾸고 하늘을 드래그하거나 확대해 주요 천체를
-            확인할 수 있습니다.
+            위치와 시각을 바꾸고 관측자 중심의 WebGL 하늘을 드래그하거나
+            확대해 주요 천체를 확인할 수 있습니다.
           </p>
         </div>
 
@@ -475,7 +771,7 @@ export function SkySimulator({
         ) : null}
 
         <label>
-          <span>관측 시각 (UTC)</span>
+          <span>관측 시각 ({timeZone})</span>
           <input
             value={dateTime}
             onChange={(event) => setDateTime(event.target.value)}
@@ -497,65 +793,174 @@ export function SkySimulator({
         </p>
       </form>
 
-      <section className="sky-view-panel" aria-labelledby="sky-view-heading">
+      <section
+        ref={skyViewRef}
+        className={`sky-view-panel${
+          fullscreenMode ? ` sky-view-panel--fullscreen sky-view-panel--${fullscreenMode}` : ""
+        }`}
+        aria-label={fullscreenMode ? "전체화면 지평선 위의 하늘" : undefined}
+        aria-labelledby={fullscreenMode ? undefined : "sky-view-heading"}
+      >
+        {fullscreenMode ? (
+          <button
+            className="sky-fullscreen-exit"
+            type="button"
+            onClick={exitFullscreen}
+          >
+            <span aria-hidden="true">←</span> 전체화면 해제
+          </button>
+        ) : null}
         <div className="sky-view-heading">
-          <div>
-            <p className="eyebrow">LIVE SKY MAP</p>
-            <h2 id="sky-view-heading">지평선 위의 하늘</h2>
-          </div>
-          <div className="sky-view-stats" aria-live="polite">
-            <span>방향 {Math.round(bearing)}°</span>
-            <span>확대 {zoom.toFixed(1)}×</span>
+          {!fullscreenMode ? (
+            <div>
+              <p className="eyebrow">LIVE SKY MAP</p>
+              <h2 id="sky-view-heading">지평선 위의 하늘</h2>
+            </div>
+          ) : null}
+          <div className="sky-view-actions">
+            <div className="sky-view-stats" aria-live="polite">
+              <span>방향 {Math.round(bearing)}°</span>
+              <span>고도 {Math.round(viewAltitude)}°</span>
+              <span>확대 {zoom.toFixed(1)}×</span>
+            </div>
+            {!fullscreenMode ? (
+              <button
+                className="sky-fullscreen-enter"
+                type="button"
+                onClick={enterFullscreen}
+              >
+                <span aria-hidden="true">⛶</span> 전체화면
+              </button>
+            ) : null}
           </div>
         </div>
 
         <div className="sky-canvas-shell">
-          {!canvasSupported ? (
-            <p className="sky-canvas-fallback" role="alert">
-              이 브라우저에서는 Canvas 2D 밤하늘 지도를 표시할 수 없습니다. 아래
-              주요 천체 목록은 계속 확인할 수 있습니다.
+          {renderBackend === "canvas2d" ? (
+            <p className="sky-renderer-notice" role="status">
+              WebGL 2를 사용할 수 없어 Canvas 2D 지도로 전환했습니다.
             </p>
           ) : null}
-          <canvas
-            ref={canvasRef}
-            className="sky-canvas"
-            aria-label="선택한 위치와 시각의 천체 관측 시뮬레이션"
-            onPointerDown={startDragging}
-            onPointerMove={dragSky}
-            onPointerUp={stopDragging}
-            onPointerCancel={stopDragging}
-            onWheel={zoomSky}
-          />
+          {renderBackend === "unsupported" ? (
+            <p className="sky-canvas-fallback" role="alert">
+              이 브라우저에서는 WebGL과 Canvas 2D 밤하늘 지도를 표시할 수
+              없습니다. 아래 주요 천체 목록은 계속 확인할 수 있습니다.
+            </p>
+          ) : null}
+          {renderBackend !== "unsupported" ? (
+            <canvas
+              key={renderBackend}
+              ref={canvasRef}
+              className="sky-canvas"
+              aria-label="선택한 위치와 시각의 관측자 중심 천체 시뮬레이션"
+              tabIndex={0}
+              onKeyDown={navigateSky}
+              onPointerDown={startDragging}
+              onPointerMove={dragSky}
+              onPointerUp={stopDragging}
+              onPointerCancel={stopDragging}
+              onWheel={zoomSky}
+            />
+          ) : null}
         </div>
 
         <div className="sky-toolbar" aria-label="시뮬레이션 조작">
-          <button type="button" onClick={() => shiftTime(-1)}>−1시간</button>
-          <button type="button" onClick={() => setBearing(normalizeDegrees(bearing - 30))}>왼쪽</button>
-          <button type="button" onClick={() => setBearing(normalizeDegrees(bearing + 30))}>오른쪽</button>
-          <button type="button" onClick={() => setZoom((value) => clamp(value + 0.2, 1, 2.5))}>확대</button>
-          <button type="button" onClick={() => setZoom((value) => clamp(value - 0.2, 1, 2.5))}>축소</button>
-          <button type="button" onClick={() => shiftTime(1)}>+1시간</button>
+          <button type="button" aria-label="−1시간" title="−1시간" onClick={() => shiftTime(-1)}>
+            <span className="sky-toolbar-icon" aria-hidden="true">↶</span>
+            <span className="sky-toolbar-label">−1시간</span>
+          </button>
+          <button type="button" aria-label="현재" title="현재 시각" onClick={showCurrentTime}>
+            <span className="sky-toolbar-icon" aria-hidden="true">◎</span>
+            <span className="sky-toolbar-label">현재</span>
+          </button>
+          <button type="button" aria-label="왼쪽" title="왼쪽" onClick={() => setBearing(normalizeDegrees(bearing - 30))}>
+            <span className="sky-toolbar-icon" aria-hidden="true">←</span>
+            <span className="sky-toolbar-label">왼쪽</span>
+          </button>
+          <button type="button" aria-label="오른쪽" title="오른쪽" onClick={() => setBearing(normalizeDegrees(bearing + 30))}>
+            <span className="sky-toolbar-icon" aria-hidden="true">→</span>
+            <span className="sky-toolbar-label">오른쪽</span>
+          </button>
+          <button type="button" aria-label="위" title="위를 보기" onClick={() => setViewAltitude((value) => clamp(value + 10, 0, 85))}>
+            <span className="sky-toolbar-icon" aria-hidden="true">↑</span>
+            <span className="sky-toolbar-label">위</span>
+          </button>
+          <button type="button" aria-label="아래" title="아래를 보기" onClick={() => setViewAltitude((value) => clamp(value - 10, 0, 85))}>
+            <span className="sky-toolbar-icon" aria-hidden="true">↓</span>
+            <span className="sky-toolbar-label">아래</span>
+          </button>
+          <button type="button" aria-label="확대" title="확대" onClick={() => setZoom((value) => clamp(value + 0.2, 1, 2.5))}>
+            <span className="sky-toolbar-icon" aria-hidden="true">＋</span>
+            <span className="sky-toolbar-label">확대</span>
+          </button>
+          <button type="button" aria-label="축소" title="축소" onClick={() => setZoom((value) => clamp(value - 0.2, 1, 2.5))}>
+            <span className="sky-toolbar-icon" aria-hidden="true">−</span>
+            <span className="sky-toolbar-label">축소</span>
+          </button>
+          <button type="button" aria-label="+1시간" title="+1시간" onClick={() => shiftTime(1)}>
+            <span className="sky-toolbar-icon" aria-hidden="true">↷</span>
+            <span className="sky-toolbar-label">+1시간</span>
+          </button>
+          {fullscreenMode ? (
+            <button
+              className={motionStatus === "active" ? "sky-motion-button--active" : undefined}
+              type="button"
+              aria-label={motionStatus === "active" ? "모션 보기 끄기" : "모션 보기"}
+              aria-pressed={motionStatus === "active"}
+              title={motionStatus === "active" ? "모션 보기 끄기" : "모션으로 하늘 보기"}
+              disabled={motionStatus === "requesting"}
+              onClick={toggleMotionControl}
+            >
+              <span className="sky-toolbar-icon" aria-hidden="true">◉</span>
+              <span className="sky-toolbar-label">
+                {motionStatus === "active" ? "모션 끄기" : "모션 보기"}
+              </span>
+            </button>
+          ) : null}
+          {fullscreenMode && motionStatus === "active" ? (
+            <button
+              type="button"
+              aria-label="모션 방향 재보정"
+              title="현재 방향으로 재보정"
+              onClick={recalibrateMotionControl}
+            >
+              <span className="sky-toolbar-icon" aria-hidden="true">⌖</span>
+              <span className="sky-toolbar-label">재보정</span>
+            </button>
+          ) : null}
         </div>
 
-        <p className="sky-time-readout">
-          <time dateTime={scene.observedAt}>
-            {formatUtcDateTime(scene.observedAt)}
-            {" UTC"}
-          </time>
-          <span>위도 {scene.latitude.toFixed(4)}°, 경도 {scene.longitude.toFixed(4)}°</span>
-        </p>
+        {fullscreenMode && motionStatus !== "idle" && motionStatus !== "active" ? (
+          <p className="sky-motion-status" role="status" aria-live="polite">
+            {motionStatusMessage(motionStatus)}
+          </p>
+        ) : null}
 
-        <details className="visible-object-list">
-          <summary>현재 지평선 위 주요 천체 {visibleObjects.length}개</summary>
-          <ul>
-            {visibleObjects.map((object) => (
-              <li key={object.id}>
-                <span>{object.name}</span>
-                <span>고도 {object.altitudeDegrees.toFixed(1)}° · 방위 {object.azimuthDegrees.toFixed(1)}°</span>
-              </li>
-            ))}
-          </ul>
-        </details>
+        {!fullscreenMode ? (
+          <>
+            <p className="sky-time-readout">
+              <time dateTime={scene.observedAt}>
+                {browserReady
+                  ? formatLocalDateTime(scene.observedAt)
+                  : formatUtcDateTime(scene.observedAt)}
+                {` ${timeZone}`}
+              </time>
+              <span>위도 {scene.latitude.toFixed(4)}°, 경도 {scene.longitude.toFixed(4)}°</span>
+            </p>
+
+            <details className="visible-object-list">
+              <summary>현재 지평선 위 주요 천체 {visibleObjects.length}개</summary>
+              <ul>
+                {visibleObjects.map((object) => (
+                  <li key={object.id}>
+                    <span>{object.name}</span>
+                    <span>고도 {object.altitudeDegrees.toFixed(1)}° · 방위 {object.azimuthDegrees.toFixed(1)}°</span>
+                  </li>
+                ))}
+              </ul>
+            </details>
+          </>
+        ) : null}
       </section>
     </div>
   );
@@ -570,6 +975,29 @@ function validCoordinates(latitude: number, longitude: number): boolean {
     longitude >= -180 &&
     longitude <= 180
   );
+}
+
+function createDefaultRenderer(): PlanetariumRenderer {
+  return new ThreePlanetariumRenderer();
+}
+
+function createDefaultOrientationController(): OrientationController {
+  return new DeviceOrientationController();
+}
+
+function motionStatusMessage(status: MotionStatus): string {
+  switch (status) {
+    case "requesting":
+      return "기기 모션 권한을 확인하고 있습니다.";
+    case "denied":
+      return "모션 권한이 거부되었습니다. Safari 설정에서 모션 및 방향 접근을 허용해 주세요.";
+    case "insecure":
+      return "모션 보기는 HTTPS 연결에서만 사용할 수 있습니다.";
+    case "unsupported":
+      return "이 기기에서는 방향 센서를 사용할 수 없습니다.";
+    default:
+      return "";
+  }
 }
 
 function formatCoordinate(value: number): string {
@@ -601,6 +1029,11 @@ function isFavoriteLocation(payload: unknown): payload is FavoriteLocation {
   );
 }
 
+function formatLocalDateTime(value: string): string {
+  const date = new Date(value);
+  return `${date.getFullYear()}. ${date.getMonth() + 1}. ${date.getDate()}. ${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+}
+
 function formatUtcDateTime(value: string): string {
   const date = new Date(value);
   return `${date.getUTCFullYear()}. ${date.getUTCMonth() + 1}. ${date.getUTCDate()}. ${String(date.getUTCHours()).padStart(2, "0")}:${String(date.getUTCMinutes()).padStart(2, "0")}`;
@@ -612,8 +1045,7 @@ function drawScene(
   bearing: number,
   zoom: number,
 ): boolean {
-  const cssWidth = Math.max(canvas.clientWidth, 320);
-  const cssHeight = Math.max(Math.min(cssWidth * 0.72, 680), 360);
+  const { width: cssWidth, height: cssHeight } = measureSkyCanvas(canvas);
   const pixelRatio = window.devicePixelRatio || 1;
   canvas.width = Math.round(cssWidth * pixelRatio);
   canvas.height = Math.round(cssHeight * pixelRatio);
@@ -646,6 +1078,27 @@ function drawScene(
   context.restore();
   drawCardinalDirections(context, centerX, centerY, radius, bearing);
   return true;
+}
+
+function measureSkyCanvas(canvas: HTMLCanvasElement): {
+  width: number;
+  height: number;
+} {
+  const fullscreenPanel = canvas.closest<HTMLElement>(
+    ".sky-view-panel--fullscreen",
+  );
+  if (fullscreenPanel) {
+    const bounds = fullscreenPanel.getBoundingClientRect();
+    return {
+      width: Math.max(bounds.width, 320),
+      height: Math.max(bounds.height, 320),
+    };
+  }
+  const width = Math.max(canvas.clientWidth, 320);
+  return {
+    width,
+    height: Math.max(Math.min(width * 0.72, 680), 360),
+  };
 }
 
 function drawAltitudeGrid(
@@ -779,6 +1232,23 @@ function projectObject(
 
 function toUtcDateTimeValue(date: Date): string {
   return date.toISOString().slice(0, 16);
+}
+
+function toLocalDateTimeValue(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
+
+function browserTimeZone(): string {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+}
+
+function subscribeToBrowser(): () => void {
+  return () => undefined;
 }
 
 function normalizeDegrees(value: number): number {

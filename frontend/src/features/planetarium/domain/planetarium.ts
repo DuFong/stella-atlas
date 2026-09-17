@@ -34,6 +34,13 @@ export type PlanetariumScene = {
   constellationSegments: ConstellationSegment[];
 };
 
+export type PlanetariumViewState = {
+  bearingDegrees: number;
+  altitudeDegrees: number;
+  fieldOfViewDegrees: number;
+  selectedObjectId?: string;
+};
+
 export interface PlanetariumEngine {
   calculate(input: PlanetariumInput): PlanetariumScene;
 }

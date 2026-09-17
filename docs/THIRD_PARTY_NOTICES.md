@@ -34,6 +34,18 @@ Data Commons Open Database License(ODbL)를 따릅니다.
 않는 검토 가능한 프로젝트 데이터로 유지합니다. catalog를 확대할 때 각 데이터
 출처, 재배포 조건과 attribution을 이 문서에 추가합니다.
 
+## Three.js
+
+- Component: `three:0.186.0`
+- Purpose: 프로젝트 소유 플라네타리움의 WebGL 2 scene, camera, GPU buffer와 shader 관리
+- License: MIT License
+- Project: <https://threejs.org/>
+- Source: <https://github.com/mrdoob/three.js>
+
+Three.js는 천체 위치를 계산하거나 catalog와 시각 asset을 제공하지 않습니다.
+StellaAtlas의 Astronomy Engine 결과를 화면에 투영하는 renderer 기반으로만
+사용하며 catalog, texture와 landscape의 출처는 별도로 기록합니다.
+
 ## exifr
 
 - Component: `exifr:7.1.3`
