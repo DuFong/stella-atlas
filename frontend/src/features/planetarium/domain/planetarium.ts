@@ -7,7 +7,14 @@ export type PlanetariumInput = PlanetariumLocation & {
   observedAt: Date;
 };
 
-export type SkyObjectKind = "STAR" | "SUN" | "MOON" | "PLANET";
+export type SkyObjectKind =
+  | "STAR"
+  | "SUN"
+  | "MOON"
+  | "PLANET"
+  | "GALAXY"
+  | "NEBULA"
+  | "CLUSTER";
 
 export type SkyObject = {
   id: string;
@@ -16,7 +23,10 @@ export type SkyObject = {
   altitudeDegrees: number;
   azimuthDegrees: number;
   magnitude?: number;
+  angularSizeArcMinutes?: number;
   color: string;
+  aliases?: readonly string[];
+  labelEligible?: boolean;
 };
 
 export type ConstellationSegment = {

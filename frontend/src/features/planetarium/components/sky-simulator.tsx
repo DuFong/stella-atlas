@@ -16,6 +16,7 @@ import type {
   SkyObject,
 } from "@/features/planetarium/domain/planetarium";
 import { AstronomyEnginePlanetarium } from "@/features/planetarium/infrastructure/astronomy-engine-planetarium";
+import { loadExtendedPlanetariumCatalog } from "@/features/planetarium/data/planetarium-catalog";
 import type { PlanetariumRenderer } from "@/features/planetarium/infrastructure/planetarium-renderer";
 import { ThreePlanetariumRenderer } from "@/features/planetarium/infrastructure/three-planetarium-renderer";
 import {
@@ -126,6 +127,35 @@ export function SkySimulator({
   useEffect(() => {
     sceneRef.current = scene;
   }, [scene]);
+
+  useEffect(() => {
+    let active = true;
+    void loadExtendedPlanetariumCatalog()
+      .then((catalog) => {
+        if (!active) {
+          return;
+        }
+        engine.replaceCatalog(catalog);
+        const currentScene = sceneRef.current;
+        const expandedScene = engine.calculate({
+          latitude: currentScene.latitude,
+          longitude: currentScene.longitude,
+          observedAt: new Date(currentScene.observedAt),
+        });
+        sceneRef.current = expandedScene;
+        setScene(expandedScene);
+      })
+      .catch(() => {
+        if (active) {
+          setMessage(
+            "확장 천체 카탈로그를 불러오지 못해 핵심 천체만 표시합니다.",
+          );
+        }
+      });
+    return () => {
+      active = false;
+    };
+  }, [engine]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -625,8 +655,9 @@ export function SkySimulator({
       return;
     }
     dragRef.current.moved = true;
-    const bearingDelta = -horizontalDistance * 0.24;
-    const altitudeDelta = verticalDistance * 0.18;
+    const sensitivity = dragSensitivityForZoom(zoom);
+    const bearingDelta = -horizontalDistance * sensitivity.bearing;
+    const altitudeDelta = verticalDistance * sensitivity.altitude;
     setBearing(normalizeDegrees(dragRef.current.bearing + bearingDelta));
     setViewAltitude(
       clamp(dragRef.current.viewAltitude + altitudeDelta, 0, 85),
@@ -717,15 +748,19 @@ export function SkySimulator({
   }
 
   const visibleObjects = scene.objects
-    .filter((object) => object.altitudeDegrees >= 0)
-    .sort((left, right) => right.altitudeDegrees - left.altitudeDegrees);
+    .filter((object) => object.altitudeDegrees >= 0 && isNotableObject(object))
+    .sort((left, right) => right.altitudeDegrees - left.altitudeDegrees)
+    .slice(0, 100);
   const selectedObject = scene.objects.find(({ id }) => id === selectedObjectId);
   const normalizedSearchQuery = searchQuery.trim().toLowerCase();
   const searchResults = normalizedSearchQuery
     ? scene.objects
         .filter((object) =>
           object.name.toLowerCase().includes(normalizedSearchQuery) ||
-          object.id.toLowerCase().includes(normalizedSearchQuery)
+          object.id.toLowerCase().includes(normalizedSearchQuery) ||
+          object.aliases?.some((alias) =>
+            alias.toLowerCase().includes(normalizedSearchQuery),
+          )
         )
         .sort((left, right) => {
           const visibilityDifference = Number(right.altitudeDegrees >= 0) - Number(left.altitudeDegrees >= 0);
@@ -910,7 +945,7 @@ export function SkySimulator({
               onFocus={() => setSearchResultsVisible(true)}
               onKeyDown={handleSearchKeyDown}
               type="search"
-              placeholder="별, 달 또는 행성 이름"
+              placeholder="별, 행성 또는 심원천체 이름"
               autoComplete="off"
               role="combobox"
               aria-autocomplete="list"
@@ -1189,6 +1224,17 @@ export function SkySimulator({
   );
 }
 
+export function dragSensitivityForZoom(zoom: number): {
+  bearing: number;
+  altitude: number;
+} {
+  const normalizedZoom = clamp(zoom, 1, 2.5);
+  return {
+    bearing: 0.24 / normalizedZoom,
+    altitude: 0.18 / normalizedZoom,
+  };
+}
+
 function validCoordinates(latitude: number, longitude: number): boolean {
   return (
     Number.isFinite(latitude) &&
@@ -1210,7 +1256,20 @@ function skyObjectKindLabel(object: SkyObject): string {
       return "달";
     case "PLANET":
       return "행성";
+    case "GALAXY":
+      return "은하";
+    case "NEBULA":
+      return "성운";
+    case "CLUSTER":
+      return "성단";
   }
+}
+
+function isNotableObject(object: SkyObject): boolean {
+  return object.kind === "SUN" ||
+    object.kind === "MOON" ||
+    object.kind === "PLANET" ||
+    Boolean(object.labelEligible);
 }
 
 function twilightPhase(
@@ -1421,6 +1480,8 @@ function drawObjects(
       ? 6
       : object.kind === "PLANET"
         ? 4
+        : object.kind === "GALAXY" || object.kind === "NEBULA" || object.kind === "CLUSTER"
+          ? clamp(3 + Math.sqrt(object.angularSizeArcMinutes ?? 2) * 0.35, 3, 8)
         : clamp(3.5 - (object.magnitude ?? 2) * 0.55, 1.2, 4.2);
     context.beginPath();
     context.arc(point.x, point.y, objectRadius, 0, Math.PI * 2);
@@ -1430,7 +1491,7 @@ function drawObjects(
     context.fill();
     context.shadowBlur = 0;
 
-    if (object.kind !== "STAR" || (object.magnitude ?? 3) <= 1.3) {
+    if (isNotableObject(object) && (object.kind !== "STAR" || (object.magnitude ?? 3) <= 1.3)) {
       context.fillStyle = "rgb(244 246 255 / 82%)";
       context.font = "12px sans-serif";
       context.fillText(object.name, point.x + objectRadius + 5, point.y - 4);

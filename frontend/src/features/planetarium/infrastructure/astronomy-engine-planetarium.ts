@@ -3,11 +3,12 @@ import {
   Equator,
   Horizon,
   Observer,
+  Rotation_EQJ_EQD,
 } from "astronomy-engine";
 import {
-  BRIGHT_STARS,
-  CONSTELLATIONS,
-} from "@/features/planetarium/data/bright-stars";
+  CORE_PLANETARIUM_CATALOG,
+  type PlanetariumCatalog,
+} from "@/features/planetarium/data/planetarium-catalog";
 import type {
   PlanetariumEngine,
   PlanetariumInput,
@@ -34,16 +35,24 @@ const SOLAR_SYSTEM_OBJECTS: readonly {
 ] as const;
 
 export class AstronomyEnginePlanetarium implements PlanetariumEngine {
+  private catalog: PlanetariumCatalog;
+
+  constructor(catalog: PlanetariumCatalog = CORE_PLANETARIUM_CATALOG) {
+    this.catalog = catalog;
+  }
+
+  replaceCatalog(catalog: PlanetariumCatalog): void {
+    this.catalog = catalog;
+  }
+
   calculate(input: PlanetariumInput): PlanetariumScene {
     validateInput(input);
     const observer = new Observer(input.latitude, input.longitude, 0);
-    const stars = BRIGHT_STARS.map((star): SkyObject => {
-      const horizontal = Horizon(
-        input.observedAt,
-        observer,
+    const toHorizontal = createJ2000ToHorizontal(input.observedAt, observer);
+    const stars = this.catalog.stars.map((star): SkyObject => {
+      const horizontal = toHorizontal(
         star.rightAscensionHours,
         star.declinationDegrees,
-        "normal",
       );
 
       return {
@@ -54,6 +63,26 @@ export class AstronomyEnginePlanetarium implements PlanetariumEngine {
         azimuthDegrees: horizontal.azimuth,
         magnitude: star.magnitude,
         color: star.color,
+        aliases: star.aliases,
+        labelEligible: star.labelEligible,
+      };
+    });
+    const deepSkyObjects = this.catalog.deepSkyObjects.map((object): SkyObject => {
+      const horizontal = toHorizontal(
+        object.rightAscensionHours,
+        object.declinationDegrees,
+      );
+      return {
+        id: object.id,
+        name: object.name,
+        kind: object.kind,
+        altitudeDegrees: horizontal.altitude,
+        azimuthDegrees: horizontal.azimuth,
+        magnitude: object.magnitude,
+        angularSizeArcMinutes: object.angularSizeArcMinutes,
+        color: object.color,
+        aliases: object.aliases,
+        labelEligible: object.labelEligible,
       };
     });
     const solarSystem = SOLAR_SYSTEM_OBJECTS.map((object): SkyObject => {
@@ -81,9 +110,9 @@ export class AstronomyEnginePlanetarium implements PlanetariumEngine {
         color: object.color,
       };
     });
-    const objects = [...solarSystem, ...stars];
+    const objects = [...solarSystem, ...stars, ...deepSkyObjects];
     const objectById = new Map(objects.map((object) => [object.id, object]));
-    const constellationSegments = CONSTELLATIONS.flatMap((constellation) =>
+    const constellationSegments = this.catalog.constellations.flatMap((constellation) =>
       constellation.segments.map(([fromId, toId]) => ({
         constellationId: constellation.id,
         constellationName: constellation.name,
@@ -91,7 +120,7 @@ export class AstronomyEnginePlanetarium implements PlanetariumEngine {
         to: requiredObject(objectById, toId),
       })),
     );
-    const milkyWayPoints = calculateMilkyWayPoints(input.observedAt, observer);
+    const milkyWayPoints = calculateMilkyWayPoints(toHorizontal);
 
     return {
       observedAt: input.observedAt.toISOString(),
@@ -105,8 +134,7 @@ export class AstronomyEnginePlanetarium implements PlanetariumEngine {
 }
 
 function calculateMilkyWayPoints(
-  observedAt: Date,
-  observer: Observer,
+  toHorizontal: ReturnType<typeof createJ2000ToHorizontal>,
 ): PlanetariumScene["milkyWayPoints"] {
   // Transpose of the standard ICRS-to-Galactic rotation matrix, sampled at
   // Galactic latitude 0. The resulting ICRS coordinates are converted to the
@@ -122,18 +150,39 @@ function calculateMilkyWayPoints(
       (Math.atan2(equatorialY, equatorialX) * 12) / Math.PI + 24
     ) % 24;
     const declinationDegrees = (Math.asin(equatorialZ) * 180) / Math.PI;
-    const horizontal = Horizon(
-      observedAt,
-      observer,
-      rightAscensionHours,
-      declinationDegrees,
-      "normal",
-    );
+    const horizontal = toHorizontal(rightAscensionHours, declinationDegrees);
     return {
       altitudeDegrees: horizontal.altitude,
       azimuthDegrees: horizontal.azimuth,
     };
   });
+}
+
+function createJ2000ToHorizontal(observedAt: Date, observer: Observer) {
+  const rotation = Rotation_EQJ_EQD(observedAt).rot;
+  return (rightAscensionHours: number, declinationDegrees: number) => {
+    const rightAscension = (rightAscensionHours * Math.PI) / 12;
+    const declination = (declinationDegrees * Math.PI) / 180;
+    const x = Math.cos(declination) * Math.cos(rightAscension);
+    const y = Math.cos(declination) * Math.sin(rightAscension);
+    const z = Math.sin(declination);
+    const rotatedX = rotation[0][0] * x + rotation[1][0] * y + rotation[2][0] * z;
+    const rotatedY = rotation[0][1] * x + rotation[1][1] * y + rotation[2][1] * z;
+    const rotatedZ = rotation[0][2] * x + rotation[1][2] * y + rotation[2][2] * z;
+    const rightAscensionOfDate = (
+      (Math.atan2(rotatedY, rotatedX) * 12) / Math.PI + 24
+    ) % 24;
+    const declinationOfDate = (
+      Math.asin(Math.max(-1, Math.min(1, rotatedZ))) * 180
+    ) / Math.PI;
+    return Horizon(
+      observedAt,
+      observer,
+      rightAscensionOfDate,
+      declinationOfDate,
+      "normal",
+    );
+  };
 }
 
 function validateInput(input: PlanetariumInput): void {

@@ -12,7 +12,10 @@ Milestone 9의 Three.js renderer는 천문 계산과 분리된 표시 계층입�
 |---|---:|---|
 | `/sky` client JavaScript, raw | <= 1,200,000 bytes | `npm run test:planetarium-budget` |
 | `/sky` client JavaScript, gzip | <= 350,000 bytes | `npm run test:planetarium-budget` |
-| Bright-object scene | <= 128 objects | astronomy adapter regression test |
+| Async catalog JSON, raw | <= 550,000 bytes | `npm run test:planetarium-budget` |
+| Async catalog JSON, gzip | <= 230,000 bytes | `npm run test:planetarium-budget` |
+| Generated catalog scene | 9,539 objects | astronomy adapter regression test |
+| Constellation geometry | 674 segments | astronomy adapter regression test |
 | Milky Way sampling | 72 points | astronomy adapter regression test |
 | WebGL pixel ratio | <= 2 full, 1 reduced | renderer/component policy |
 
@@ -20,8 +23,9 @@ Milestone 9의 Three.js renderer는 천문 계산과 분리된 표시 계층입�
 chunk를 중복 없이 합산합니다. `npm run build -- --webpack` 후 실행하며 예산을
 넘으면 실패합니다.
 
-2026-09-17 production build 측정값은 5개 chunk, raw 664,538 bytes, gzip
-177,483 bytes로 두 JavaScript 예산을 통과했습니다.
+2026-09-17 production build 측정값은 초기 5개 chunk가 raw 668,963 bytes,
+gzip 179,780 bytes이고 hydration 이후 불러오는 catalog JSON은 raw 527,314 bytes,
+gzip 216,285 bytes로 각 예산을 통과했습니다.
 
 ## Runtime budgets
 
@@ -51,7 +55,8 @@ frame/long-task/heap 기록과 Safari Web Inspector의 timeline을 사용합니�
 
 ## Regression coverage
 
-- 고정 좌표·절대 시각에서 Astronomy Engine scene과 은하수 표본이 결정적입니다.
+- 고정 좌표·절대 시각에서 8,920개 항성, 610개 심원천체를 포함한 Astronomy
+  Engine scene과 은하수 표본이 결정적입니다.
 - observer-space projection, label 밀도, 선택 강조와 hit-test 연결을 단위 테스트로
   고정합니다.
 - 390px mobile과 desktop 상호작용, 전체화면, keyboard, fallback, 검색·선택과

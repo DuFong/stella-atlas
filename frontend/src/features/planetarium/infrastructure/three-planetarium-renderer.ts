@@ -42,16 +42,19 @@ const STAR_VERTEX_SHADER = `
   attribute float objectSize;
   attribute float objectSelected;
   attribute float objectKind;
+  attribute float objectStyle;
   attribute vec3 objectColor;
   uniform float pixelRatio;
   varying vec3 vColor;
   varying float vSelected;
   varying float vKind;
+  varying float vStyle;
 
   void main() {
     vColor = objectColor;
     vSelected = objectSelected;
     vKind = objectKind;
+    vStyle = objectStyle;
     vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * viewPosition;
     gl_PointSize = objectSize * mix(1.0, 1.7, objectSelected) * pixelRatio;
@@ -62,23 +65,101 @@ const STAR_FRAGMENT_SHADER = `
   varying vec3 vColor;
   varying float vSelected;
   varying float vKind;
+  varying float vStyle;
+
+  float noise(vec2 point) {
+    return fract(sin(dot(point, vec2(12.9898, 78.233))) * 43758.5453);
+  }
 
   void main() {
-    float distanceFromCenter = distance(gl_PointCoord, vec2(0.5));
-    if (distanceFromCenter > 0.5) {
+    vec2 centered = gl_PointCoord - vec2(0.5);
+    float distanceFromCenter = length(centered);
+    bool isSaturn = vStyle > 6.5 && vStyle < 7.5;
+    float ringDistance = length(vec2(centered.x, centered.y * 3.2));
+    bool inSaturnRing = ringDistance > 0.31 && ringDistance < 0.48;
+
+    if (isSaturn) {
+      if (distanceFromCenter > 0.27 && !inSaturnRing) {
+        discard;
+      }
+    } else if (distanceFromCenter > 0.5) {
       discard;
     }
-    if (vKind > 1.5 && vKind < 2.5 && distance(gl_PointCoord, vec2(0.65, 0.42)) < 0.32) {
-      discard;
+
+    if (vStyle > 0.5 && vStyle < 1.5) {
+      float sunCore = 1.0 - smoothstep(0.0, 0.13, distanceFromCenter);
+      float sunCorona = 1.0 - smoothstep(0.12, 0.5, distanceFromCenter);
+      vec3 sunColor = mix(vec3(1.0, 0.57, 0.16), vec3(1.0, 1.0, 0.9), sunCore);
+      gl_FragColor = vec4(sunColor, max(sunCore, sunCorona * 0.54));
+      return;
+    }
+
+    if (vStyle > 1.5 && vStyle < 2.5) {
+      float disk = 1.0 - smoothstep(0.42, 0.49, distanceFromCenter);
+      float light = smoothstep(-0.42, 0.3, centered.x - centered.y * 0.16);
+      float craters = noise(floor(gl_PointCoord * 13.0));
+      vec3 moonColor = mix(vec3(0.2, 0.21, 0.2), vec3(0.88, 0.86, 0.76), light);
+      moonColor *= mix(0.72, 1.04, smoothstep(0.28, 0.72, craters));
+      gl_FragColor = vec4(mix(moonColor, vec3(0.78, 0.95, 0.35), vSelected * 0.25), disk);
+      return;
+    }
+
+    if (vKind > 2.5 && vKind < 3.5) {
+      float disk = 1.0 - smoothstep(isSaturn ? 0.22 : 0.42, isSaturn ? 0.27 : 0.49, distanceFromCenter);
+      float sphereLight = clamp(1.08 - distance(centered, vec2(-0.13, 0.13)) * 1.45, 0.34, 1.0);
+      vec3 planetColor = vColor * sphereLight;
+
+      if (vStyle > 2.5 && vStyle < 3.5) {
+        float mottling = noise(floor(gl_PointCoord * 11.0));
+        planetColor = mix(vec3(0.34), vec3(0.72), mottling) * sphereLight;
+      } else if (vStyle > 3.5 && vStyle < 4.5) {
+        float clouds = sin((gl_PointCoord.y + noise(vec2(gl_PointCoord.y, 0.0)) * 0.05) * 38.0) * 0.06;
+        planetColor = vec3(0.94, 0.79, 0.48) * (sphereLight + clouds);
+      } else if (vStyle > 4.5 && vStyle < 5.5) {
+        float darkRegion = smoothstep(0.25, 0.05, distance(gl_PointCoord, vec2(0.62, 0.55)));
+        float polarCap = smoothstep(0.18, 0.05, distance(gl_PointCoord, vec2(0.5, 0.15)));
+        planetColor = mix(vec3(0.76, 0.19, 0.08), vec3(0.28, 0.09, 0.06), darkRegion);
+        planetColor = mix(planetColor, vec3(0.92, 0.78, 0.63), polarCap) * sphereLight;
+      } else if (vStyle > 5.5 && vStyle < 6.5) {
+        float bands = sin(gl_PointCoord.y * 58.0) * 0.12 + sin(gl_PointCoord.y * 21.0) * 0.07;
+        float redSpot = 1.0 - smoothstep(0.04, 0.1, length((gl_PointCoord - vec2(0.67, 0.62)) * vec2(0.7, 1.5)));
+        planetColor = vec3(0.79 + bands, 0.6 + bands * 0.7, 0.42 + bands * 0.4) * sphereLight;
+        planetColor = mix(planetColor, vec3(0.72, 0.24, 0.12), redSpot * 0.8);
+      } else if (isSaturn) {
+        if (distanceFromCenter > 0.27) {
+          float ringBand = sin(ringDistance * 130.0) * 0.08;
+          gl_FragColor = vec4(vec3(0.72 + ringBand, 0.62 + ringBand, 0.38 + ringBand), 0.92);
+          return;
+        }
+        float bands = sin(gl_PointCoord.y * 45.0) * 0.06;
+        planetColor = vec3(0.82 + bands, 0.7 + bands, 0.43 + bands * 0.5) * sphereLight;
+      } else if (vStyle > 7.5 && vStyle < 8.5) {
+        planetColor = vec3(0.42, 0.82, 0.84) * sphereLight;
+      } else if (vStyle > 8.5 && vStyle < 9.5) {
+        float bands = sin(gl_PointCoord.y * 44.0) * 0.07;
+        planetColor = vec3(0.18 + bands, 0.34 + bands, 0.86 + bands) * sphereLight;
+      }
+
+      planetColor = mix(planetColor, vec3(0.78, 0.95, 0.35), vSelected * 0.28);
+      gl_FragColor = vec4(planetColor, disk);
+      return;
+    }
+
+    if (vKind > 3.5) {
+      float diffuse = 1.0 - smoothstep(0.04, 0.5, distanceFromCenter);
+      float deepSkyAlpha = vKind < 4.5 ? diffuse * 0.72 : diffuse * 0.58;
+      if (vKind > 5.5) {
+        float clusterGrain = step(0.48, fract(gl_PointCoord.x * 17.0 + gl_PointCoord.y * 29.0));
+        deepSkyAlpha = max(diffuse * 0.35, clusterGrain * diffuse * 0.88);
+      }
+      gl_FragColor = vec4(mix(vColor * 0.66, vColor * 1.25, diffuse), deepSkyAlpha);
+      return;
     }
     float core = 1.0 - smoothstep(0.0, 0.5, distanceFromCenter);
     float alpha = smoothstep(0.5, 0.08, distanceFromCenter);
     vec3 baseColor = mix(vColor * 0.72, vColor * 1.35, core);
     vec3 highlightColor = mix(baseColor, vec3(0.78, 0.95, 0.35), 0.72);
     vec3 color = mix(baseColor, highlightColor, vSelected);
-    if (vKind > 2.5 && distanceFromCenter > 0.36) {
-      color = mix(color, vec3(1.0), 0.45);
-    }
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -92,6 +173,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
   private constellationLines: LineSegments<BufferGeometry, LineBasicMaterial> | null = null;
   private milkyWayRibbon: Mesh<BufferGeometry, MeshBasicMaterial> | null = null;
   private horizonLine: LineLoop<BufferGeometry, LineBasicMaterial> | null = null;
+  private horizonLandscape: Mesh<BufferGeometry, MeshBasicMaterial> | null = null;
   private cardinalSprites: Sprite[] = [];
   private objectLabels: LabelEntry[] = [];
   private objectIds: string[] = [];
@@ -153,9 +235,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
     this.requiredRenderer();
     this.removeSceneObjects();
 
-    const visibleObjects = scene.objects.filter(
-      (object) => object.altitudeDegrees >= 0,
-    );
+    const visibleObjects = scene.objects.filter(isRenderableObject);
     this.objectIds = visibleObjects.map(({ id }) => id);
     this.pointCloud = this.createPointCloud(visibleObjects);
     this.scene.add(this.pointCloud);
@@ -266,6 +346,12 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
       this.horizonLine.material.dispose();
       this.horizonLine = null;
     }
+    if (this.horizonLandscape) {
+      this.scene.remove(this.horizonLandscape);
+      this.horizonLandscape.geometry.dispose();
+      this.horizonLandscape.material.dispose();
+      this.horizonLandscape = null;
+    }
     for (const sprite of this.cardinalSprites) {
       this.scene.remove(sprite);
       sprite.material.map?.dispose();
@@ -283,6 +369,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
     const colors: number[] = [];
     const sizes: number[] = [];
     const kinds: number[] = [];
+    const styles: number[] = [];
 
     for (const object of objects) {
       positions.push(
@@ -296,6 +383,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
       colors.push(color.r, color.g, color.b);
       sizes.push(pointSizeFor(object));
       kinds.push(objectKindValue(object));
+      styles.push(solarSystemVisualStyle(object));
     }
 
     const geometry = new BufferGeometry();
@@ -303,6 +391,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
     geometry.setAttribute("objectColor", new Float32BufferAttribute(colors, 3));
     geometry.setAttribute("objectSize", new Float32BufferAttribute(sizes, 1));
     geometry.setAttribute("objectKind", new Float32BufferAttribute(kinds, 1));
+    geometry.setAttribute("objectStyle", new Float32BufferAttribute(styles, 1));
     geometry.setAttribute(
       "objectSelected",
       new Float32BufferAttribute(
@@ -333,7 +422,11 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
       new LineBasicMaterial({ color: 0xc8f36a, opacity: 0.5, transparent: true }),
     );
     this.horizonLine.frustumCulled = false;
+    this.horizonLine.renderOrder = 1;
     this.scene.add(this.horizonLine);
+
+    this.horizonLandscape = createHorizonLandscape();
+    this.scene.add(this.horizonLandscape);
 
     for (const direction of [
       { azimuth: 0, label: "N" },
@@ -343,6 +436,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
     ]) {
       const sprite = createDirectionSprite(direction.label);
       sprite.position.copy(horizontalToCartesian(3, direction.azimuth, SKY_RADIUS - 2));
+      sprite.renderOrder = 4;
       this.cardinalSprites.push(sprite);
       this.scene.add(sprite);
     }
@@ -403,6 +497,9 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
 
   private addObjectLabels(objects: readonly SkyObject[]): void {
     for (const object of objects) {
+      if (!shouldCreateObjectLabel(object)) {
+        continue;
+      }
       const sprite = createTextSprite(object.name, object.kind !== "STAR");
       sprite.position.copy(
         horizontalToCartesian(
@@ -554,12 +651,12 @@ function createTextSprite(
 ): Sprite {
   const canvas = document.createElement("canvas");
   canvas.width = 256;
-  canvas.height = 64;
+  canvas.height = 72;
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("Object label canvas is not available.");
   }
-  context.font = `${prominent ? 700 : 600} ${constellation ? 20 : 23}px sans-serif`;
+  context.font = `${prominent ? 700 : 600} ${constellation ? 24 : 27}px sans-serif`;
   context.textAlign = "center";
   context.textBaseline = "middle";
   const measuredWidth = Math.min(context.measureText(text).width + 32, 246);
@@ -567,21 +664,21 @@ function createTextSprite(
     ? "rgb(20 33 56 / 58%)"
     : "rgb(5 9 20 / 78%)";
   context.beginPath();
-  context.roundRect((256 - measuredWidth) / 2, 9, measuredWidth, 46, 18);
+  context.roundRect((256 - measuredWidth) / 2, 8, measuredWidth, 56, 20);
   context.fill();
   context.fillStyle = constellation
     ? "rgb(145 201 255 / 78%)"
     : prominent
       ? "#c8f36a"
       : "rgb(255 255 255 / 88%)";
-  context.fillText(text, 128, 33, 220);
+  context.fillText(text, 128, 37, 220);
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
   const sprite = new Sprite(
     new SpriteMaterial({ map: texture, depthTest: false, transparent: true }),
   );
-  const worldWidth = clamp(measuredWidth / 15, 6, 16);
-  sprite.scale.set(worldWidth, 4, 1);
+  const worldWidth = clamp(measuredWidth / 14, 7, 18);
+  sprite.scale.set(worldWidth, 5, 1);
   sprite.renderOrder = prominent ? 5 : 4;
   return sprite;
 }
@@ -642,6 +739,56 @@ function createMilkyWayRibbon(
   return ribbon;
 }
 
+function createHorizonLandscape(): Mesh<BufferGeometry, MeshBasicMaterial> {
+  const positions: number[] = [];
+  const stepDegrees = 2;
+  for (let azimuth = 0; azimuth < 360; azimuth += stepDegrees) {
+    const nextAzimuth = azimuth + stepDegrees;
+    const currentTop = horizontalToCartesian(
+      landscapeAltitudeForAzimuth(azimuth),
+      azimuth,
+      SKY_RADIUS - 2,
+    );
+    const nextTop = horizontalToCartesian(
+      landscapeAltitudeForAzimuth(nextAzimuth),
+      nextAzimuth,
+      SKY_RADIUS - 2,
+    );
+    const currentBottom = horizontalToCartesian(-60, azimuth, SKY_RADIUS - 2);
+    const nextBottom = horizontalToCartesian(-60, nextAzimuth, SKY_RADIUS - 2);
+    positions.push(
+      ...currentTop.toArray(),
+      ...currentBottom.toArray(),
+      ...nextTop.toArray(),
+      ...nextTop.toArray(),
+      ...currentBottom.toArray(),
+      ...nextBottom.toArray(),
+    );
+  }
+  const geometry = new BufferGeometry();
+  geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
+  const landscape = new Mesh(
+    geometry,
+    new MeshBasicMaterial({
+      color: 0x02050a,
+      depthTest: false,
+      side: DoubleSide,
+    }),
+  );
+  landscape.frustumCulled = false;
+  landscape.renderOrder = 2;
+  return landscape;
+}
+
+export function landscapeAltitudeForAzimuth(azimuthDegrees: number): number {
+  const azimuth = (normalizeDegrees(azimuthDegrees) * Math.PI) / 180;
+  const altitude = 2.1
+    + Math.sin(azimuth * 3 + 0.4) * 1.25
+    + Math.sin(azimuth * 7 - 1.1) * 0.72
+    + Math.sin(azimuth * 13 + 2.2) * 0.42;
+  return clamp(altitude, 0.35, 4.9);
+}
+
 function milkyWayOpacity(sunAltitudeDegrees: number | undefined): number {
   if (sunAltitudeDegrees === undefined || sunAltitudeDegrees <= -18) {
     return 0.075;
@@ -667,6 +814,9 @@ function labelPriority(entry: LabelEntry, selectedObjectId?: string): number {
   }
   if (entry.object?.kind === "PLANET") {
     return 800;
+  }
+  if (entry.object && isDeepSkyObject(entry.object)) {
+    return 760 - (entry.object.magnitude ?? 10) * 4;
   }
   return 700 - (entry.object?.magnitude ?? 5) * 20;
 }
@@ -708,8 +858,11 @@ export function labelDensityAllows({
   if (constellation) {
     return quality === "full" && fieldOfView <= 65;
   }
-  if (kind !== "STAR") {
+  if (kind === "SUN" || kind === "MOON" || kind === "PLANET") {
     return true;
+  }
+  if (kind === "GALAXY" || kind === "NEBULA" || kind === "CLUSTER") {
+    return quality === "full" && fieldOfView <= 50;
   }
   if (quality === "reduced") {
     return fieldOfView <= 50 && magnitude <= 0.5;
@@ -751,17 +904,49 @@ export function horizontalToCartesian(
   );
 }
 
-function pointSizeFor(object: SkyObject): number {
+export function pointSizeFor(object: SkyObject): number {
   if (object.kind === "SUN") {
-    return 13;
+    return 29;
   }
   if (object.kind === "MOON") {
-    return 12;
+    return 28;
   }
   if (object.kind === "PLANET") {
-    return 7;
+    return object.id === "saturn" ? 29 : object.id === "jupiter" ? 25 : 23;
+  }
+  if (isDeepSkyObject(object)) {
+    const apparentSize = object.angularSizeArcMinutes ?? 2;
+    return clamp(5 + Math.sqrt(apparentSize) * 0.8, 6, 18);
   }
   return clamp(6.2 - (object.magnitude ?? 2) * 0.85, 2, 7.5);
+}
+
+export function solarSystemVisualStyle(object: Pick<SkyObject, "id" | "kind">): number {
+  if (object.kind === "SUN") {
+    return 1;
+  }
+  if (object.kind === "MOON") {
+    return 2;
+  }
+  if (object.kind !== "PLANET") {
+    return 0;
+  }
+  return {
+    mercury: 3,
+    venus: 4,
+    mars: 5,
+    jupiter: 6,
+    saturn: 7,
+    uranus: 8,
+    neptune: 9,
+  }[object.id] ?? 3;
+}
+
+export function isRenderableObject(object: SkyObject): boolean {
+  if (object.kind === "SUN") {
+    return object.altitudeDegrees >= -18;
+  }
+  return object.altitudeDegrees >= 0;
 }
 
 function objectKindValue(object: SkyObject): number {
@@ -774,7 +959,32 @@ function objectKindValue(object: SkyObject): number {
       return 2;
     case "PLANET":
       return 3;
+    case "GALAXY":
+      return 4;
+    case "NEBULA":
+      return 5;
+    case "CLUSTER":
+      return 6;
   }
+}
+
+function isDeepSkyObject(object: SkyObject): boolean {
+  return object.kind === "GALAXY" || object.kind === "NEBULA" || object.kind === "CLUSTER";
+}
+
+function isCatalogObject(object: SkyObject): boolean {
+  return object.kind === "STAR" || isDeepSkyObject(object);
+}
+
+function isSolarSystemObject(object: SkyObject): boolean {
+  return object.kind === "SUN" || object.kind === "MOON" || object.kind === "PLANET";
+}
+
+export function shouldCreateObjectLabel(object: SkyObject): boolean {
+  if (isSolarSystemObject(object)) {
+    return false;
+  }
+  return !isCatalogObject(object) || object.labelEligible === true;
 }
 
 function normalizeDegrees(value: number): number {

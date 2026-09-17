@@ -7,18 +7,29 @@ const manifestPath = resolve(
 );
 const rawBudgetBytes = 1_200_000;
 const gzipBudgetBytes = 350_000;
+const catalogRawBudgetBytes = 550_000;
+const catalogGzipBudgetBytes = 230_000;
+const catalogPaths = [
+  "src/features/planetarium/data/generated/star-catalog.json",
+  "src/features/planetarium/data/generated/deep-sky-catalog.json",
+  "src/features/planetarium/data/generated/constellation-catalog.json",
+];
 
 if (!existsSync(manifestPath)) {
-  throw new Error("Build output is missing. Run `npm run build -- --webpack` first.");
+  throw new Error("Build output is missing. Run `npm run build` first.");
 }
 
 const source = readFileSync(manifestPath, "utf8");
-const marker = '["/sky/page"]=';
-const assignment = source.indexOf(marker);
-if (assignment < 0) {
+const assignment = source.match(
+  /globalThis\.__RSC_MANIFEST\["\/sky\/page"\]\s*=\s*/,
+);
+if (!assignment || assignment.index === undefined) {
   throw new Error("Sky route entry was not found in the build manifest.");
 }
-const manifest = JSON.parse(source.slice(assignment + marker.length, -1));
+const manifestSource = source
+  .slice(assignment.index + assignment[0].length)
+  .replace(/;\s*$/, "");
+const manifest = JSON.parse(manifestSource);
 const simulatorEntry = Object.entries(manifest.clientModules).find(([modulePath]) =>
   modulePath.endsWith("/features/planetarium/components/sky-simulator.tsx"),
 );
@@ -34,7 +45,7 @@ const chunks = [...new Set(
 )];
 const totals = chunks.reduce(
   (result, chunk) => {
-    const chunkPath = resolve(".next", chunk);
+    const chunkPath = resolve(".next", chunk.replace(/^\/?_next\//, ""));
     const contents = readFileSync(chunkPath);
     return {
       raw: result.raw + statSync(chunkPath).size,
@@ -52,4 +63,28 @@ if (totals.raw > rawBudgetBytes || totals.gzip > gzipBudgetBytes) {
 
 console.log(
   `Planetarium JavaScript: ${totals.raw} raw / ${totals.gzip} gzip bytes across ${chunks.length} chunks.`,
+);
+
+const catalogTotals = catalogPaths.reduce(
+  (result, path) => {
+    const contents = readFileSync(resolve(path));
+    return {
+      raw: result.raw + contents.byteLength,
+      gzip: result.gzip + gzipSync(contents).byteLength,
+    };
+  },
+  { raw: 0, gzip: 0 },
+);
+
+if (
+  catalogTotals.raw > catalogRawBudgetBytes ||
+  catalogTotals.gzip > catalogGzipBudgetBytes
+) {
+  throw new Error(
+    `Planetarium async catalog exceeds its budget: ${catalogTotals.raw} raw / ${catalogTotals.gzip} gzip bytes.`,
+  );
+}
+
+console.log(
+  `Planetarium async catalog: ${catalogTotals.raw} raw / ${catalogTotals.gzip} gzip bytes.`,
 );

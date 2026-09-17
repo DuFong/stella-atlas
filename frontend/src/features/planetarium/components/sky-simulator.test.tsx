@@ -6,7 +6,15 @@ import type {
   OrientationController,
   OrientationView,
 } from "../infrastructure/device-orientation-controller";
-import { SkySimulator } from "./sky-simulator";
+import { dragSensitivityForZoom, SkySimulator } from "./sky-simulator";
+
+describe("dragSensitivityForZoom", () => {
+  it("slows horizontal and vertical rotation as zoom increases", () => {
+    expect(dragSensitivityForZoom(1)).toEqual({ bearing: 0.24, altitude: 0.18 });
+    expect(dragSensitivityForZoom(2)).toEqual({ bearing: 0.12, altitude: 0.09 });
+    expect(dragSensitivityForZoom(2.5)).toEqual({ bearing: 0.096, altitude: 0.072 });
+  });
+});
 
 describe("SkySimulator", () => {
   beforeEach(() => {
@@ -115,8 +123,20 @@ describe("SkySimulator", () => {
     expect(searchInput).toHaveValue("베가");
     expect(screen.getByRole("heading", { level: 3, name: "베가" })).toBeInTheDocument();
     expect(screen.getByText("베가 중심 보기로 이동했습니다.")).toBeInTheDocument();
-    expect(screen.getByText("방향 63°")).toBeInTheDocument();
+    expect(screen.getByText("방향 64°")).toBeInTheDocument();
     expect(screen.getByText("고도 85°")).toBeInTheDocument();
+  });
+
+  it("searches for deep-sky objects by Messier designation", async () => {
+    render(<SkySimulator initialObservedAt="2026-08-05T13:00:00Z" />);
+
+    const searchInput = screen.getByLabelText("천체 검색");
+    fireEvent.change(searchInput, { target: { value: "M31" } });
+    const result = await screen.findByRole("button", { name: "안드로메다 은하 선택" });
+    fireEvent.click(result);
+
+    expect(screen.getByRole("heading", { level: 3, name: "안드로메다 은하" })).toBeInTheDocument();
+    expect(screen.getByText(/은하 · 고도 .* · 방위/)).toBeInTheDocument();
   });
 
   it("plays, pauses, and changes the simulated time speed", () => {

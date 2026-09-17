@@ -2190,47 +2190,24 @@ textarea {
   place-items: center;
   border: 1px solid rgb(145 201 255 / 13%);
   border-radius: 20px;
-  background:
-    radial-gradient(circle at 50% 88%, rgb(54 83 132 / 30%), transparent 42%),
-    linear-gradient(#030712, #071226 72%, #112341);
+  background: linear-gradient(#030712, #071226 72%, #112341);
   transition: background 280ms ease;
 }
 
 .sky-canvas-shell--astronomical {
-  background:
-    radial-gradient(circle at 50% 92%, rgb(102 82 150 / 34%), transparent 43%),
-    linear-gradient(#071026, #142448 70%, #45345d);
+  background: linear-gradient(#071026, #142448 70%, #45345d);
 }
 
 .sky-canvas-shell--nautical {
-  background:
-    radial-gradient(circle at 50% 95%, rgb(236 126 99 / 35%), transparent 44%),
-    linear-gradient(#11234a, #354f78 68%, #9a5f70);
+  background: linear-gradient(#11234a, #354f78 68%, #9a5f70);
 }
 
 .sky-canvas-shell--civil {
-  background:
-    radial-gradient(circle at 50% 100%, rgb(255 190 103 / 68%), transparent 46%),
-    linear-gradient(#315f92, #7f7594 68%, #d88b71);
+  background: linear-gradient(#315f92, #7f7594 68%, #d88b71);
 }
 
 .sky-canvas-shell--daylight {
-  background:
-    radial-gradient(circle at 50% 94%, rgb(255 238 174 / 72%), transparent 42%),
-    linear-gradient(#4b99d1, #8cc5e8 72%, #d9e8ed);
-}
-
-.sky-canvas-shell::after {
-  position: absolute;
-  z-index: 2;
-  right: 0;
-  bottom: 0;
-  left: 0;
-  height: 15%;
-  background: linear-gradient(#07101b, #02050a);
-  clip-path: polygon(0 62%, 8% 43%, 15% 58%, 25% 25%, 34% 60%, 43% 39%, 53% 66%, 63% 33%, 72% 54%, 82% 22%, 91% 57%, 100% 39%, 100% 100%, 0 100%);
-  content: "";
-  pointer-events: none;
+  background: linear-gradient(#4b99d1, #8cc5e8 72%, #d9e8ed);
 }
 
 .sky-renderer-notice {

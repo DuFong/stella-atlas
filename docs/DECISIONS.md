@@ -814,14 +814,17 @@ GPU·memory 비용을 크게 좌우합니다.
 
 ### Decision
 
-- 별·태양·달·행성은 하나의 point shader에서 magnitude, project color와 kind
-  attribute를 사용해 표현합니다. 달과 행성은 procedural shape로 구분합니다.
+- 별·태양·달·행성은 하나의 point shader에서 magnitude, project color, kind와
+  body style attribute를 사용해 표현합니다. 태양계 천체는 밝은 별보다 약
+  3–4배 크게 그리고, 달 표면과 행성의 띠·대적점·고리·색상을 procedural
+  shape로 구분합니다.
 - 은하수는 Galactic equator의 72개 표본을 ICRS와 관측자 지평 좌표로 변환한
   반투명 ribbon으로 렌더링합니다. 외부 bitmap texture를 사용하지 않습니다.
-- 대기·박명과 지상 실루엣은 태양 고도에 따른 CSS gradient와 프로젝트 소유
-  geometry로 표시합니다.
-- label은 선택 천체, 태양·달, 행성, 밝은 별, 별자리 순으로 우선하며 viewport
-  사각형 충돌을 제거합니다. 확대 수준과 품질 모드에 따라 밀도를 조정합니다.
+- 대기·박명은 태양 고도에 따른 CSS gradient로, 지상 실루엣은 고도 0도를
+  둘러싼 프로젝트 소유 구면 geometry로 표시합니다.
+- 태양계 천체는 형상만으로 식별하도록 scene label을 표시하지 않습니다. 항성,
+  심원천체와 별자리 label은 viewport 사각형 충돌을 제거하고 확대 수준과 품질
+  모드에 따라 밀도를 조정합니다.
 - reduced motion, 4GB 이하 device memory 또는 4개 이하 logical processor에서는
   pixel ratio를 1로 제한하고 label 밀도를 낮춥니다.
 - production `/sky` client JavaScript 예산과 대표 기기 runtime 예산은
@@ -833,7 +836,47 @@ GPU·memory 비용을 크게 좌우합니다.
   제공합니다.
 - 사실적인 천체 표면보다 식별성과 성능을 우선하며, 고해상도 texture는 출처와
   실제 성능을 별도 승인한 뒤 추가해야 합니다.
-- SIMBAD로 확인한 초기 별 좌표와 밝기 부분집합의 ODbL 고지와 attribution을
+- 채택한 catalog snapshot의 출처, 라이선스와 attribution을
   `THIRD_PARTY_NOTICES.md`에 유지해야 합니다.
 - 실제 release 후보는 자동 bundle 예산 외에도 대표 desktop/mobile runtime
   측정을 반복해야 합니다.
+
+---
+
+## ADR-026 — Generated Naked-Eye and Deep-Sky Catalog
+
+- Status: Accepted
+- Date: 2026-09-17
+
+### Context
+
+M9의 초기 30개 항성과 3개 별자리 연결선은 renderer와 interaction 검증에는
+충분하지만 실제 하늘 탐색과 검색에는 부족합니다. 전체 Gaia/OpenNGC를 client에
+포함하거나 원격 catalog를 runtime에 조회하면 bundle, 계산 비용과 장애 의존성이
+과도합니다. catalog 확대는 ADR-019와 ADR-023에 따라 출처, 재배포 조건과 성능
+검증이 선행되어야 합니다.
+
+### Decision
+
+- HYG Database 4.1에서 겉보기 등급 6.5 이하 항성 8,920개를 추출합니다.
+- OpenNGC에서 은하·성운·성단 유형 중 Messier나 일반 이름이 있거나 V등급 10
+  이하인 610개를 추출합니다.
+- Stellarium Western sky-culture의 HIP 연결선으로 88개 별자리 674개 segment를
+  생성하되 삽화, 설명과 AGPL code는 포함하지 않습니다.
+- 원본 commit과 SHA-256을 고정하고 프로젝트 generator로 compact JSON을 만듭니다.
+  생성 데이터의 CC BY-SA attribution과 조건을 제3자 고지에 기록합니다.
+- J2000 좌표는 Astronomy Engine의 EQJ-to-EQD rotation으로 관측일 세차를 보정한
+  다음 지평 좌표로 변환합니다.
+- 전체 catalog는 GPU point buffer와 검색에 제공하지만 label과 접근 가능한 화면
+  목록은 중요 천체로 제한합니다.
+
+### Consequences
+
+- 네트워크 연결 없이 육안 별과 대표 심원천체를 검색·선택하고 88개 별자리 선을
+  볼 수 있습니다.
+- 약 9,500개 천체를 매 scene 계산하므로 route bundle과 대표 기기 frame/memory
+  예산을 계속 측정해야 합니다.
+- HYG/OpenNGC에서 파생한 JSON과 Stellarium 연결선에는 각 upstream의 CC BY-SA
+  조건과 attribution이 적용됩니다.
+- 고유운동은 현재 배율에서 생략합니다. 고배율 정밀 천문 기능을 추가할 때 HYG의
+  proper-motion 값을 포함하고 검증해야 합니다.

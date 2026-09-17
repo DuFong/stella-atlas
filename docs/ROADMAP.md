@@ -226,6 +226,8 @@ Engine adapter가 계산의 source of truth를 유지하고, Three.js는 observe
 시간 재생, procedural 은하수·대기·지상 단서와 adaptive 품질 정책을 구현했습니다.
 결정성·상호작용·fallback 회귀 테스트와 production route JavaScript 예산을
 자동화했고 대표 viewport Chrome visual smoke를 확인했습니다. release 후보의
+후속 안정화에서 HYG 4.1 기반 6.5등급 이하 항성 8,920개, OpenNGC 기반 대표
+은하·성운·성단 610개와 Western sky-culture의 88개 별자리 연결선을 추가했습니다.
 실기기 runtime 측정은 `docs/PLANETARIUM_PERFORMANCE.md` 절차로 반복합니다.
 
 ## Milestone 10 — Deployment
