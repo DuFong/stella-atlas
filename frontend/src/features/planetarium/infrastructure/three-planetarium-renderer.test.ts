@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   horizontalToCartesian,
+  labelDensityAllows,
   selectionValuesFor,
+  shouldUseReducedQuality,
 } from "./three-planetarium-renderer";
 
 describe("horizontalToCartesian", () => {
@@ -30,5 +32,48 @@ describe("selectionValuesFor", () => {
         "moon",
       ),
     ).toEqual([0, 1, 0]);
+  });
+});
+
+describe("labelDensityAllows", () => {
+  it("keeps selected and solar-system labels while reducing dense star labels", () => {
+    expect(labelDensityAllows({
+      constellation: false,
+      fieldOfView: 90,
+      kind: "STAR",
+      magnitude: 2,
+      quality: "full",
+      selected: true,
+    })).toBe(true);
+    expect(labelDensityAllows({
+      constellation: false,
+      fieldOfView: 90,
+      kind: "PLANET",
+      quality: "reduced",
+      selected: false,
+    })).toBe(true);
+    expect(labelDensityAllows({
+      constellation: false,
+      fieldOfView: 90,
+      kind: "STAR",
+      magnitude: 1,
+      quality: "reduced",
+      selected: false,
+    })).toBe(false);
+    expect(labelDensityAllows({
+      constellation: true,
+      fieldOfView: 50,
+      quality: "full",
+      selected: false,
+    })).toBe(true);
+  });
+});
+
+describe("shouldUseReducedQuality", () => {
+  it("waits for a stable sample and compares p95 with viewport budgets", () => {
+    expect(shouldUseReducedQuality(Array(19).fill(40), 390)).toBe(false);
+    expect(shouldUseReducedQuality(Array(20).fill(34), 390)).toBe(true);
+    expect(shouldUseReducedQuality(Array(20).fill(17), 1280)).toBe(true);
+    expect(shouldUseReducedQuality(Array(20).fill(12), 1280)).toBe(false);
   });
 });

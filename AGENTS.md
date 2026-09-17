@@ -1049,35 +1049,32 @@ Notes
 
 # 27. Current Development Status
 
-## Active Milestone
+## Most Recently Completed Milestone
 
 ```text
 Milestone 9 — Immersive Planetarium
 ```
 
-Status: Milestone 8 completed on 2026-08-24. Milestone 9 started on 2026-08-24.
+Status: Milestone 9 completed on 2026-09-17. Milestone 10 has not started and
+requires explicit activation.
 
 ## Most Recently Completed Milestone Goal
 
-Milestone 8 adds verified local Google OAuth, stable internal user UUIDs,
-owner-scoped favorite locations, opt-in recent queried locations with a
-four-decimal coordinate precision and ten-item retention limit, and
-metadata-only authenticated observation records. Server media persistence and
-local IndexedDB post migration remain deferred.
+Milestone 9 adds the project-owned Three.js WebGL renderer with Canvas fallback,
+observer-centered desktop and mobile navigation, fullscreen motion controls,
+search, selection, focus, priority labels, time playback, procedural sky cues,
+adaptive quality, performance budgets and documented asset attribution.
 
 ## Current Scope
 
-Allowed work:
+Allowed work until Milestone 10 is explicitly activated:
 
-- the selected Three.js-based project-owned WebGL renderer and its performance
-  verification;
-- immersive observer-centered sky rendering behind the existing planetarium port;
-- recognizable stars, planets, Moon, Milky Way, constellations and horizon cues;
-- object search, selection, focus, label prioritization and time playback;
-- performance, accessibility, fallback, catalog and asset-license verification;
-- fixes and documentation required to complete Milestone 9.
+- fixes, regression verification and documentation required to stabilize
+  Milestone 9;
+- planning and documentation needed to activate Milestone 10;
+- no deployment mutation until Milestone 10 is explicitly activated.
 
-Out of scope during Milestone 9 unless separately approved:
+Out of scope until a later milestone is explicitly activated or separately approved:
 
 - adopting AGPL software before project-license and source-distribution approval;
 - sensor-based AR, telescope control and astrophotography plate solving;

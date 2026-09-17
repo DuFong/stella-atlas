@@ -7,9 +7,10 @@ export type BrightStar = {
   color: string;
 };
 
-// Curated J2000 coordinates for the bright stars used by the initial sky view.
-// This intentionally remains a small, reviewable catalogue instead of bundling
-// third-party sky-culture datasets with unclear redistribution terms.
+// Curated J2000 coordinates and visual magnitudes checked against SIMBAD/CDS.
+// SIMBAD data is available under ODbL; attribution is recorded in
+// docs/THIRD_PARTY_NOTICES.md. Korean names, display colors, and constellation
+// connections are maintained by the project.
 export const BRIGHT_STARS: readonly BrightStar[] = [
   { id: "sirius", name: "시리우스", rightAscensionHours: 6.7525, declinationDegrees: -16.7161, magnitude: -1.46, color: "#dcecff" },
   { id: "canopus", name: "카노푸스", rightAscensionHours: 6.3992, declinationDegrees: -52.6957, magnitude: -0.74, color: "#fff1d2" },

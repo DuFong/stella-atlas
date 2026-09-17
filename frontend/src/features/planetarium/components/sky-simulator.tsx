@@ -29,6 +29,7 @@ import type { RecentLocation } from "@/features/location/types/recent-location";
 const DEFAULT_LATITUDE = "37.5665";
 const DEFAULT_LONGITUDE = "126.9780";
 const DEFAULT_VIEW_ALTITUDE = 28;
+const PLAYBACK_INTERVAL_MS = 1_000;
 
 type RenderBackend = "webgl" | "canvas2d" | "unsupported";
 type FullscreenMode = "native" | "viewport" | null;
@@ -79,6 +80,7 @@ export function SkySimulator({
     browserReady ? toLocalDateTimeValue(initialDate) : toUtcDateTimeValue(initialDate)
   );
   const timeZone = browserReady ? browserTimeZone() : "UTC";
+  const renderQuality = browserReady ? recommendedRenderQuality() : "full";
   const [scene, setScene] = useState<PlanetariumScene>(() =>
     engine.calculate({
       latitude: Number(DEFAULT_LATITUDE),
@@ -86,10 +88,15 @@ export function SkySimulator({
       observedAt: new Date(initialObservedAt),
     }),
   );
+  const sceneRef = useRef(scene);
   const [bearing, setBearing] = useState(0);
   const [viewAltitude, setViewAltitude] = useState(DEFAULT_VIEW_ALTITUDE);
   const [zoom, setZoom] = useState(1);
   const [selectedObjectId, setSelectedObjectId] = useState<string>();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResultsVisible, setSearchResultsVisible] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState(60);
   const [renderBackend, setRenderBackend] = useState<RenderBackend>("webgl");
   const [fullscreenMode, setFullscreenMode] = useState<FullscreenMode>(null);
   const [motionStatus, setMotionStatus] = useState<MotionStatus>("idle");
@@ -115,6 +122,32 @@ export function SkySimulator({
       ? ""
       : "최근 위치를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.",
   );
+
+  useEffect(() => {
+    sceneRef.current = scene;
+  }, [scene]);
+
+  useEffect(() => {
+    if (!isPlaying) {
+      return;
+    }
+    const timer = window.setInterval(() => {
+      const currentScene = sceneRef.current;
+      const nextTime = new Date(
+        new Date(currentScene.observedAt).getTime() +
+          playbackSpeed * PLAYBACK_INTERVAL_MS,
+      );
+      const nextScene = engine.calculate({
+        latitude: currentScene.latitude,
+        longitude: currentScene.longitude,
+        observedAt: nextTime,
+      });
+      sceneRef.current = nextScene;
+      setScene(nextScene);
+      setDateTime(toLocalDateTimeValue(nextTime));
+    }, PLAYBACK_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [engine, isPlaying, playbackSpeed]);
 
   useEffect(() => {
     viewRef.current = {
@@ -226,6 +259,7 @@ export function SkySimulator({
         altitudeDegrees: viewAltitude,
         bearingDegrees: bearing,
         fieldOfViewDegrees: 90 / zoom,
+        quality: renderQuality,
         selectedObjectId,
       });
       rendererRef.current.render();
@@ -236,7 +270,7 @@ export function SkySimulator({
       );
       return () => window.clearTimeout(fallbackTimer);
     }
-  }, [bearing, renderBackend, selectedObjectId, viewAltitude, zoom]);
+  }, [bearing, renderBackend, renderQuality, selectedObjectId, viewAltitude, zoom]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -248,7 +282,11 @@ export function SkySimulator({
       try {
         const { width, height } = measureSkyCanvas(canvas);
         canvas.style.height = `${height}px`;
-        renderer.resize(width, height, window.devicePixelRatio || 1);
+        renderer.resize(
+          width,
+          height,
+          renderQuality === "reduced" ? 1 : window.devicePixelRatio || 1,
+        );
         renderer.render();
       } catch {
         setRenderBackend("canvas2d");
@@ -257,7 +295,7 @@ export function SkySimulator({
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
-  }, [fullscreenMode, renderBackend]);
+  }, [fullscreenMode, renderBackend, renderQuality]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -276,6 +314,7 @@ export function SkySimulator({
 
   function updateScene(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    setIsPlaying(false);
     const parsedLatitude = Number(latitude);
     const parsedLongitude = Number(longitude);
     const observedAt = new Date(dateTime);
@@ -553,6 +592,7 @@ export function SkySimulator({
   }
 
   function showCurrentTime() {
+    setIsPlaying(false);
     const currentTime = new Date();
     setScene(
       engine.calculate({
@@ -624,7 +664,31 @@ export function SkySimulator({
       event.clientX - bounds.left,
       event.clientY - bounds.top,
     );
-    setSelectedObjectId(selectedId ?? undefined);
+    const object = scene.objects.find(({ id }) => id === selectedId);
+    if (object) {
+      selectAndFocusObject(object);
+    } else {
+      setSelectedObjectId(undefined);
+    }
+  }
+
+  function selectAndFocusObject(object: SkyObject) {
+    setSelectedObjectId(object.id);
+    setSearchQuery(object.name);
+    setSearchResultsVisible(false);
+    if (object.altitudeDegrees < 0) {
+      setMessage(`${object.name}은 현재 지평선 아래에 있습니다.`);
+      return;
+    }
+    setBearing(normalizeDegrees(object.azimuthDegrees));
+    setViewAltitude(clamp(object.altitudeDegrees, 0, 85));
+    setMessage(`${object.name} 중심 보기로 이동했습니다.`);
+  }
+
+  function handleSearchKeyDown(event: ReactKeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Escape") {
+      setSearchResultsVisible(false);
+    }
   }
 
   function zoomSky(event: ReactWheelEvent<HTMLCanvasElement>) {
@@ -656,6 +720,22 @@ export function SkySimulator({
     .filter((object) => object.altitudeDegrees >= 0)
     .sort((left, right) => right.altitudeDegrees - left.altitudeDegrees);
   const selectedObject = scene.objects.find(({ id }) => id === selectedObjectId);
+  const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+  const searchResults = normalizedSearchQuery
+    ? scene.objects
+        .filter((object) =>
+          object.name.toLowerCase().includes(normalizedSearchQuery) ||
+          object.id.toLowerCase().includes(normalizedSearchQuery)
+        )
+        .sort((left, right) => {
+          const visibilityDifference = Number(right.altitudeDegrees >= 0) - Number(left.altitudeDegrees >= 0);
+          return visibilityDifference || left.name.localeCompare(right.name, "ko");
+        })
+        .slice(0, 8)
+    : [];
+  const skyPhase = twilightPhase(
+    scene.objects.find(({ kind }) => kind === "SUN")?.altitudeDegrees,
+  );
 
   return (
     <div className="sky-simulator">
@@ -818,6 +898,56 @@ export function SkySimulator({
           />
         </label>
 
+        <div className="sky-object-search">
+          <label>
+            <span>천체 검색</span>
+            <input
+              value={searchQuery}
+              onChange={(event) => {
+                setSearchQuery(event.target.value);
+                setSearchResultsVisible(true);
+              }}
+              onFocus={() => setSearchResultsVisible(true)}
+              onKeyDown={handleSearchKeyDown}
+              type="search"
+              placeholder="별, 달 또는 행성 이름"
+              autoComplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="sky-object-search-results"
+              aria-expanded={searchResultsVisible && Boolean(normalizedSearchQuery)}
+            />
+          </label>
+          {searchResultsVisible && normalizedSearchQuery ? (
+            <div
+              id="sky-object-search-results"
+              className="sky-search-results"
+              aria-live="polite"
+            >
+              {searchResults.length > 0 ? (
+                <ul aria-label="천체 검색 결과">
+                  {searchResults.map((object) => (
+                    <li key={object.id}>
+                      <button
+                        type="button"
+                        onClick={() => selectAndFocusObject(object)}
+                        aria-label={`${object.name} 선택`}
+                      >
+                        <span>{object.name}</span>
+                        <span>
+                          {skyObjectKindLabel(object)} · {object.altitudeDegrees >= 0 ? `고도 ${object.altitudeDegrees.toFixed(1)}°` : "지평선 아래"}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>일치하는 천체가 없습니다.</p>
+              )}
+            </div>
+          ) : null}
+        </div>
+
         <button className="sky-submit-button" type="submit">
           <span aria-hidden="true">✦</span> 이 하늘 보기
         </button>
@@ -873,7 +1003,7 @@ export function SkySimulator({
           </div>
         </div>
 
-        <div className="sky-canvas-shell">
+        <div className={`sky-canvas-shell sky-canvas-shell--${skyPhase}`}>
           {renderBackend === "canvas2d" ? (
             <p className="sky-renderer-notice" role="status">
               WebGL 2를 사용할 수 없어 Canvas 2D 지도로 전환했습니다.
@@ -911,6 +1041,32 @@ export function SkySimulator({
             <span className="sky-toolbar-icon" aria-hidden="true">◎</span>
             <span className="sky-toolbar-label">현재</span>
           </button>
+          <button
+            type="button"
+            aria-label={isPlaying ? "시간 일시정지" : "시간 재생"}
+            aria-pressed={isPlaying}
+            title={isPlaying ? "시간 일시정지" : "시간 재생"}
+            onClick={() => setIsPlaying((current) => !current)}
+          >
+            <span className="sky-toolbar-icon" aria-hidden="true">
+              {isPlaying ? "Ⅱ" : "▶"}
+            </span>
+            <span className="sky-toolbar-label">
+              {isPlaying ? "일시정지" : "재생"}
+            </span>
+          </button>
+          <label className="sky-playback-speed">
+            <span className="sky-toolbar-label">재생 속도</span>
+            <select
+              value={playbackSpeed}
+              onChange={(event) => setPlaybackSpeed(Number(event.target.value))}
+              aria-label="시간 재생 속도"
+            >
+              <option value={1}>1×</option>
+              <option value={60}>60×</option>
+              <option value={600}>600×</option>
+            </select>
+          </label>
           <button type="button" aria-label="왼쪽" title="왼쪽" onClick={() => setBearing(normalizeDegrees(bearing - 30))}>
             <span className="sky-toolbar-icon" aria-hidden="true">←</span>
             <span className="sky-toolbar-label">왼쪽</span>
@@ -983,9 +1139,14 @@ export function SkySimulator({
                 {skyObjectKindLabel(selectedObject)} · 고도 {selectedObject.altitudeDegrees.toFixed(1)}° · 방위 {selectedObject.azimuthDegrees.toFixed(1)}°
               </p>
             </div>
-            <button type="button" onClick={() => setSelectedObjectId(undefined)}>
-              선택 해제
-            </button>
+            <div className="sky-selection-actions">
+              <button type="button" onClick={() => selectAndFocusObject(selectedObject)}>
+                중앙에 맞추기
+              </button>
+              <button type="button" onClick={() => setSelectedObjectId(undefined)}>
+                선택 해제
+              </button>
+            </div>
           </section>
         ) : null}
 
@@ -1012,7 +1173,7 @@ export function SkySimulator({
                     <button
                       type="button"
                       aria-pressed={object.id === selectedObjectId}
-                      onClick={() => setSelectedObjectId(object.id)}
+                      onClick={() => selectAndFocusObject(object)}
                     >
                       <span>{object.name}</span>
                       <span>고도 {object.altitudeDegrees.toFixed(1)}° · 방위 {object.azimuthDegrees.toFixed(1)}°</span>
@@ -1050,6 +1211,24 @@ function skyObjectKindLabel(object: SkyObject): string {
     case "PLANET":
       return "행성";
   }
+}
+
+function twilightPhase(
+  sunAltitudeDegrees: number | undefined,
+): "daylight" | "civil" | "nautical" | "astronomical" | "night" {
+  if (sunAltitudeDegrees === undefined || sunAltitudeDegrees <= -18) {
+    return "night";
+  }
+  if (sunAltitudeDegrees <= -12) {
+    return "astronomical";
+  }
+  if (sunAltitudeDegrees <= -6) {
+    return "nautical";
+  }
+  if (sunAltitudeDegrees <= 0) {
+    return "civil";
+  }
+  return "daylight";
 }
 
 function createDefaultRenderer(): PlanetariumRenderer {
@@ -1324,6 +1503,17 @@ function browserTimeZone(): string {
 
 function subscribeToBrowser(): () => void {
   return () => undefined;
+}
+
+function recommendedRenderQuality(): "full" | "reduced" {
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory;
+  const reducedMotion = typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  return reducedMotion ||
+    (deviceMemory !== undefined && deviceMemory <= 4) ||
+    navigator.hardwareConcurrency <= 4
+    ? "reduced"
+    : "full";
 }
 
 function normalizeDegrees(value: number): number {

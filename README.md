@@ -5,7 +5,7 @@
 StellaAtlas는 날씨와 천문 데이터를 이해하기 쉬운 관측 정보로 변환하여
 사용자가 오늘 밤 별을 관측하기 좋은지 판단하도록 돕는 웹 서비스입니다.
 
-**Milestone 9 — Immersive Planetarium**을 시작했습니다. Google OAuth와 위치
+**Milestone 9 — Immersive Planetarium**을 완료했습니다. Google OAuth와 위치
 라이브러리를 완성한 Milestone 8 위에서, 기존 2D 천구 지도를 실제 관측자가
 하늘을 올려다보는 감각에 가까운 식별 가능한 플라네타리움으로 고도화합니다.
 Stellarium Web Engine과 WorldWide Telescope의 라이선스·제품 범위·통합 비용을
@@ -163,9 +163,9 @@ Canvas에 표시합니다. 이 기능은 서버 API나 추가 `application.yml` 
 시뮬레이션 관측 시각은 저장하지 않습니다.
 
 Milestone 9에서는 기존 Astronomy Engine의 결정적인 천체 위치 계산과
-`PlanetariumEngine` 계약은 유지하고 렌더링 계층을 고도화합니다. 관측자 중심
-투영, 대기와 지평선, 식별 가능한 별·달·행성·별자리, label 우선순위, 천체
-검색·선택과 시간 재생을 단계적으로 추가합니다. AGPL 기반 Stellarium Web
+`PlanetariumEngine` 계약을 유지하면서 관측자 중심 WebGL 투영, 대기와 지평선,
+은하수, 식별 가능한 별·달·행성·별자리, label 우선순위, 천체 검색·선택과 시간
+재생을 제공합니다. AGPL 기반 Stellarium Web
 Engine은 프로젝트 라이선스와 source 제공 의무가 맞지 않아 채택하지 않으며,
 WorldWide Telescope도 연구 data visualization 중심의 범위와 계산 계층 중복 때문에
 채택하지 않습니다. Three.js는 GPU 렌더링에만 사용하고 천체 위치는 기존
@@ -191,6 +191,7 @@ Astronomy Engine이 계속 결정합니다.
 - [Observation Score](docs/OBSERVATION_SCORE.md)
 - [Architecture Decisions](docs/DECISIONS.md)
 - [Third-Party Notices](docs/THIRD_PARTY_NOTICES.md)
+- [Planetarium Performance](docs/PLANETARIUM_PERFORMANCE.md)
 - [Contributing](CONTRIBUTING.md)
 
 ## Contribution

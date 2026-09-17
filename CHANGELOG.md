@@ -40,6 +40,11 @@
 - Edge-to-edge fullscreen sky viewing with translucent overlay controls and an iPhone Safari viewport fallback.
 - Permission-gated mobile orientation controls with relative sky tracking, smoothing, recalibration, and secure-context guidance.
 - Pointer and accessible-list sky-object selection with GPU highlighting and an altitude/azimuth detail panel.
+- Name-based sky-object search with shared selection and camera-centering controls.
+- User-controlled time playback with pause, current-time reset, and 1×/60×/600× speeds.
+- Priority and collision-aware object and constellation labels with adaptive mobile density.
+- Procedural Milky Way, twilight atmosphere, ground silhouette, and distinct Moon/planet symbols without external textures.
+- Automated `/sky` JavaScript budgets and documented desktop/mobile runtime acceptance targets.
 
 ### Changed
 

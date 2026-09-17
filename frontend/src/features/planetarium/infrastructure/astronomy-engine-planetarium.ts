@@ -91,6 +91,7 @@ export class AstronomyEnginePlanetarium implements PlanetariumEngine {
         to: requiredObject(objectById, toId),
       })),
     );
+    const milkyWayPoints = calculateMilkyWayPoints(input.observedAt, observer);
 
     return {
       observedAt: input.observedAt.toISOString(),
@@ -98,8 +99,41 @@ export class AstronomyEnginePlanetarium implements PlanetariumEngine {
       longitude: input.longitude,
       objects,
       constellationSegments,
+      milkyWayPoints,
     };
   }
+}
+
+function calculateMilkyWayPoints(
+  observedAt: Date,
+  observer: Observer,
+): PlanetariumScene["milkyWayPoints"] {
+  // Transpose of the standard ICRS-to-Galactic rotation matrix, sampled at
+  // Galactic latitude 0. The resulting ICRS coordinates are converted to the
+  // observer horizon by Astronomy Engine.
+  return Array.from({ length: 72 }, (_, index) => {
+    const galacticLongitude = (index * 5 * Math.PI) / 180;
+    const galacticX = Math.cos(galacticLongitude);
+    const galacticY = Math.sin(galacticLongitude);
+    const equatorialX = -0.0548755604 * galacticX - 0.8734370902 * galacticY;
+    const equatorialY = 0.4941094279 * galacticX - 0.44482963 * galacticY;
+    const equatorialZ = -0.867666149 * galacticX - 0.1980763734 * galacticY;
+    const rightAscensionHours = (
+      (Math.atan2(equatorialY, equatorialX) * 12) / Math.PI + 24
+    ) % 24;
+    const declinationDegrees = (Math.asin(equatorialZ) * 180) / Math.PI;
+    const horizontal = Horizon(
+      observedAt,
+      observer,
+      rightAscensionHours,
+      declinationDegrees,
+      "normal",
+    );
+    return {
+      altitudeDegrees: horizontal.altitude,
+      azimuthDegrees: horizontal.azimuth,
+    };
+  });
 }
 
 function validateInput(input: PlanetariumInput): void {

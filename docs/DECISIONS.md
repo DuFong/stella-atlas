@@ -796,3 +796,44 @@ advisory가 확인됐습니다. Three.js 자체에서는 알려진 취약점이 
 - 홈 route는 data orchestration만 담당하고 표현 component는 feature package에
   위치해 App Router 계약과도 일치합니다.
 - 다음 dependency 변경에서도 audit 결과와 production build를 함께 검증합니다.
+
+---
+
+## ADR-025 — Procedural Planetarium Assets and Adaptive Quality
+
+- Status: Accepted
+- Date: 2026-09-17
+
+### Context
+
+M9 완료에는 은하수, 대기·박명, 지상 단서, 천체 label과 구분 가능한 태양계
+표현이 필요합니다. 외부 texture와 landscape를 추가하면 network 비용과 배포
+라이선스가 늘어나며, 작은 bright-object catalog에서 고해상도 asset은 초기
+경험에 비해 비용이 큽니다. 모바일에서는 device pixel ratio와 label draw call이
+GPU·memory 비용을 크게 좌우합니다.
+
+### Decision
+
+- 별·태양·달·행성은 하나의 point shader에서 magnitude, project color와 kind
+  attribute를 사용해 표현합니다. 달과 행성은 procedural shape로 구분합니다.
+- 은하수는 Galactic equator의 72개 표본을 ICRS와 관측자 지평 좌표로 변환한
+  반투명 ribbon으로 렌더링합니다. 외부 bitmap texture를 사용하지 않습니다.
+- 대기·박명과 지상 실루엣은 태양 고도에 따른 CSS gradient와 프로젝트 소유
+  geometry로 표시합니다.
+- label은 선택 천체, 태양·달, 행성, 밝은 별, 별자리 순으로 우선하며 viewport
+  사각형 충돌을 제거합니다. 확대 수준과 품질 모드에 따라 밀도를 조정합니다.
+- reduced motion, 4GB 이하 device memory 또는 4개 이하 logical processor에서는
+  pixel ratio를 1로 제한하고 label 밀도를 낮춥니다.
+- production `/sky` client JavaScript 예산과 대표 기기 runtime 예산은
+  `docs/PLANETARIUM_PERFORMANCE.md`에서 관리합니다.
+
+### Consequences
+
+- texture·landscape 다운로드와 별도 시각 asset 라이선스 없이 M9 시각 단서를
+  제공합니다.
+- 사실적인 천체 표면보다 식별성과 성능을 우선하며, 고해상도 texture는 출처와
+  실제 성능을 별도 승인한 뒤 추가해야 합니다.
+- SIMBAD로 확인한 초기 별 좌표와 밝기 부분집합의 ODbL 고지와 attribution을
+  `THIRD_PARTY_NOTICES.md`에 유지해야 합니다.
+- 실제 release 후보는 자동 bundle 예산 외에도 대표 desktop/mobile runtime
+  측정을 반복해야 합니다.

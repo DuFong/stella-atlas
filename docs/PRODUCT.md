@@ -424,5 +424,4 @@ MVP의 핵심 공개 API는 `GET /api/v1/observations`입니다.
 - 사용자 위치 저장 정밀도
 - 로그인 도입 시점
 - 운영 비용 상한
-- M9 renderer와 별 catalog·texture·landscape의 최종 라이선스·배포 방식
 - 로컬 게시물을 계정 기반 서버 저장소로 이전하는 정책

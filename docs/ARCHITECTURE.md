@@ -300,6 +300,16 @@ lifecycle을 직접 소유합니다. React component는 renderer 내부 object�
 input latency와 접근성 fallback을 측정합니다. 최종 성능 예산은 WebGL foundation
 측정 뒤 확정합니다.
 
+M9의 완성 renderer는 외부 texture 없이 별·태양·달·행성을 point shader로
+구분하고, Galactic-to-ICRS 회전으로 만든 72개 은하수 표본을 반투명 ribbon으로
+표시합니다. 대기·박명과 지상 실루엣은 CSS gradient와 프로젝트 geometry로
+제공합니다. 천체와 별자리 label은 선택 천체, 태양계 천체, 밝은 별 순으로
+우선순위를 계산하고 screen-space 사각형 충돌을 피합니다.
+
+브라우저가 reduced motion을 요청하거나 device memory/logical processor가 낮으면
+pixel ratio와 label 밀도를 낮춥니다. 정적 bundle 예산과 대표 기기 runtime 예산,
+측정 절차는 `docs/PLANETARIUM_PERFORMANCE.md`를 기준으로 합니다.
+
 ---
 
 ## 6. Recommended Internal Structure

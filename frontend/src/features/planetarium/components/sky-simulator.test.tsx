@@ -30,6 +30,7 @@ describe("SkySimulator", () => {
 
   afterEach(() => {
     cleanup();
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -80,6 +81,16 @@ describe("SkySimulator", () => {
     );
   });
 
+  it("derives the daylight atmosphere from the calculated Sun altitude", () => {
+    const { container } = render(
+      <SkySimulator initialObservedAt="2026-08-05T03:00:00Z" />,
+    );
+
+    expect(container.querySelector(".sky-canvas-shell")).toHaveClass(
+      "sky-canvas-shell--daylight",
+    );
+  });
+
   it("selects a visible object from the accessible object list", () => {
     render(<SkySimulator initialObservedAt="2026-08-05T13:00:00Z" />);
 
@@ -92,6 +103,59 @@ describe("SkySimulator", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "선택 해제" }));
     expect(screen.queryByRole("heading", { level: 3, name: "베가" })).not.toBeInTheDocument();
+  });
+
+  it("searches for an object and centers the sky view on it", () => {
+    render(<SkySimulator initialObservedAt="2026-08-05T13:00:00Z" />);
+
+    const searchInput = screen.getByLabelText("천체 검색");
+    fireEvent.change(searchInput, { target: { value: "vega" } });
+    fireEvent.click(screen.getByRole("button", { name: "베가 선택" }));
+
+    expect(searchInput).toHaveValue("베가");
+    expect(screen.getByRole("heading", { level: 3, name: "베가" })).toBeInTheDocument();
+    expect(screen.getByText("베가 중심 보기로 이동했습니다.")).toBeInTheDocument();
+    expect(screen.getByText("방향 63°")).toBeInTheDocument();
+    expect(screen.getByText("고도 85°")).toBeInTheDocument();
+  });
+
+  it("plays, pauses, and changes the simulated time speed", () => {
+    vi.useFakeTimers();
+    const renderer: PlanetariumRenderer = {
+      initialize: vi.fn(),
+      resize: vi.fn(),
+      updateScene: vi.fn(),
+      updateView: vi.fn(),
+      render: vi.fn(),
+      hitTest: vi.fn(() => null),
+      dispose: vi.fn(),
+    };
+    const initialObservedAt = "2026-08-05T13:00:00Z";
+    render(
+      <SkySimulator
+        initialObservedAt={initialObservedAt}
+        createRenderer={() => renderer}
+      />,
+    );
+    const dateTimeInput = screen.getByLabelText(/관측 시각/);
+    const expectedAfterOneMinute = new Date(
+      new Date(initialObservedAt).getTime() + 60_000,
+    );
+    const expectedValue = `${expectedAfterOneMinute.getFullYear()}-${String(expectedAfterOneMinute.getMonth() + 1).padStart(2, "0")}-${String(expectedAfterOneMinute.getDate()).padStart(2, "0")}T${String(expectedAfterOneMinute.getHours()).padStart(2, "0")}:${String(expectedAfterOneMinute.getMinutes()).padStart(2, "0")}`;
+
+    fireEvent.click(screen.getByRole("button", { name: "시간 재생" }));
+    expect(screen.getByRole("button", { name: "시간 일시정지" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    act(() => vi.advanceTimersByTime(1_000));
+    expect(dateTimeInput).toHaveValue(expectedValue);
+
+    fireEvent.click(screen.getByRole("button", { name: "시간 일시정지" }));
+    expect(screen.getByRole("button", { name: "시간 재생" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("selects a WebGL object through renderer hit testing", async () => {

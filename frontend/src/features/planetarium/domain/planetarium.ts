@@ -26,12 +26,18 @@ export type ConstellationSegment = {
   to: SkyObject;
 };
 
+export type HorizontalPoint = {
+  altitudeDegrees: number;
+  azimuthDegrees: number;
+};
+
 export type PlanetariumScene = {
   observedAt: string;
   latitude: number;
   longitude: number;
   objects: SkyObject[];
   constellationSegments: ConstellationSegment[];
+  milkyWayPoints: HorizontalPoint[];
 };
 
 export type PlanetariumViewState = {
@@ -39,6 +45,7 @@ export type PlanetariumViewState = {
   altitudeDegrees: number;
   fieldOfViewDegrees: number;
   selectedObjectId?: string;
+  quality: "full" | "reduced";
 };
 
 export interface PlanetariumEngine {

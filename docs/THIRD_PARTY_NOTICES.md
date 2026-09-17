@@ -30,9 +30,17 @@ Data Commons Open Database License(ODbL)를 따릅니다.
 - License: MIT License
 - Project: <https://github.com/cosinekitty/astronomy>
 
-초기 밝은 별과 대표 별자리 목록은 대규모 제3자 sky-culture bundle을 포함하지
-않는 검토 가능한 프로젝트 데이터로 유지합니다. catalog를 확대할 때 각 데이터
-출처, 재배포 조건과 attribution을 이 문서에 추가합니다.
+초기 밝은 별 목록의 J2000 좌표와 밝기 값은 SIMBAD에서 확인한 검토 가능한
+부분집합이며, SIMBAD 서비스 데이터는 ODbL로 제공됩니다. 이 제품은 SIMBAD
+database operated at CDS, Strasbourg, France를 사용했음을 고지합니다.
+
+- SIMBAD: <https://simbad.cds.unistra.fr/simbad/>
+- SIMBAD reference: Wenger et al. 2000, A&AS, 143, 9
+
+별 이름의 한국어 표기, 표시 색상과 대표 별자리 연결선은 프로젝트가 직접
+관리합니다. 은하수는 외부 texture 없이 Galactic-to-ICRS 회전과 Astronomy
+Engine의 지평 좌표 변환으로 생성한 procedural ribbon입니다. 대기 gradient와
+지상 실루엣도 프로젝트 CSS/geometry이므로 별도 시각 asset을 배포하지 않습니다.
 
 ## Three.js
 

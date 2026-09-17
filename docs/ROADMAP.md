@@ -221,8 +221,12 @@ Engine adapter가 계산의 source of truth를 유지하고, Three.js는 observe
 제외 범위: 카메라 영상을 합성하는 센서 기반 AR, 망원경 제어, 천체사진 plate solving, 우주 비행
 시뮬레이션, 자체 대규모 catalog backend, 운영 배포는 포함하지 않습니다.
 
-상태: 진행 중 (2026-08-24 시작). Three.js renderer를 선택하고 WebGL foundation을
-구현 중입니다.
+상태: 완료 (2026-09-17). Three.js 기반 프로젝트 renderer, Canvas fallback,
+관측자 중심 탐색, 전체화면·모션 입력, 천체 검색·선택·중앙 정렬, 우선순위 label,
+시간 재생, procedural 은하수·대기·지상 단서와 adaptive 품질 정책을 구현했습니다.
+결정성·상호작용·fallback 회귀 테스트와 production route JavaScript 예산을
+자동화했고 대표 viewport Chrome visual smoke를 확인했습니다. release 후보의
+실기기 runtime 측정은 `docs/PLANETARIUM_PERFORMANCE.md` 절차로 반복합니다.
 
 ## Milestone 10 — Deployment
 
