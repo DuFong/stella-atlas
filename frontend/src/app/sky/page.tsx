@@ -43,7 +43,7 @@ export default async function SkyPage() {
           <span>StellaAtlas</span>
         </Link>
         <div className="nav-actions">
-          <span className="milestone-badge">Milestone 8</span>
+          <span className="milestone-badge">Milestone 9</span>
           <Link className="nav-link" href="/journal">
             관측 기록
           </Link>

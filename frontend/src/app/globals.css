@@ -1758,12 +1758,16 @@ textarea {
 }
 
 .sky-nav {
-  width: min(100% - 40px, 1240px);
+  width: min(calc(100% - 40px), 1240px);
 }
 
 .sky-simulator {
   display: grid;
-  width: min(100% - 40px, 1240px);
+  grid-template-areas:
+    "view"
+    "controls";
+  width: min(calc(100% - 40px), 1240px);
+  max-width: calc(100vw - 40px);
   margin-inline: auto;
   gap: 20px;
   padding-block: 30px 72px;
@@ -1771,6 +1775,8 @@ textarea {
 
 .sky-control-panel,
 .sky-view-panel {
+  box-sizing: border-box;
+  width: 100%;
   min-width: 0;
   border: 1px solid rgb(255 255 255 / 13%);
   border-radius: 26px;
@@ -1779,6 +1785,7 @@ textarea {
 }
 
 .sky-control-panel {
+  grid-area: controls;
   display: grid;
   align-content: start;
   gap: 15px;
@@ -1835,6 +1842,63 @@ textarea {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.sky-object-search {
+  display: grid;
+  gap: 8px;
+}
+
+.sky-search-results {
+  overflow: hidden;
+  border: 1px solid rgb(145 201 255 / 17%);
+  border-radius: 12px;
+  background: rgb(4 9 20 / 88%);
+}
+
+.sky-search-results ul {
+  display: grid;
+  margin: 0;
+  padding: 5px;
+  list-style: none;
+}
+
+.sky-search-results li button {
+  display: flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: 9px;
+  padding: 7px 9px;
+  background: transparent;
+  color: rgb(255 255 255 / 78%);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.sky-search-results li button:hover,
+.sky-search-results li button:focus-visible {
+  background: rgb(145 201 255 / 10%);
+}
+
+.sky-search-results li button:focus-visible {
+  outline: 2px solid rgb(145 201 255 / 35%);
+  outline-offset: -2px;
+}
+
+.sky-search-results li span:last-child,
+.sky-search-results > p {
+  color: rgb(255 255 255 / 42%);
+  font-size: 0.7rem;
+}
+
+.sky-search-results > p {
+  margin: 0;
+  padding: 12px;
 }
 
 .sky-favorite-panel {
@@ -1951,6 +2015,8 @@ textarea {
 }
 
 .sky-view-panel {
+  position: relative;
+  grid-area: view;
   padding: 18px;
 }
 
@@ -1979,20 +2045,186 @@ textarea {
   font-size: 0.7rem;
 }
 
+.sky-playback-speed {
+  display: flex;
+  min-width: 0;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid rgb(145 201 255 / 22%);
+  border-radius: 12px;
+  padding: 0 8px;
+  background: rgb(145 201 255 / 8%);
+  color: var(--sky-300);
+  font-size: 0.7rem;
+  font-weight: 740;
+}
+
+.sky-playback-speed select {
+  width: 52px;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: inherit;
+  color-scheme: dark;
+  font: inherit;
+}
+
+.sky-playback-speed .sky-toolbar-label {
+  white-space: nowrap;
+}
+
+.sky-playback-speed:focus-within {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
+}
+
 .sky-view-stats span {
   border: 1px solid rgb(255 255 255 / 10%);
   border-radius: 999px;
   padding: 6px 9px;
 }
 
+.sky-view-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sky-fullscreen-enter,
+.sky-fullscreen-exit {
+  min-height: 38px;
+  border: 1px solid rgb(145 201 255 / 24%);
+  border-radius: 11px;
+  padding: 0 12px;
+  background: rgb(145 201 255 / 9%);
+  color: var(--sky-300);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.sky-fullscreen-enter:hover,
+.sky-fullscreen-exit:hover {
+  background: rgb(145 201 255 / 15%);
+}
+
+.sky-fullscreen-enter:focus-visible,
+.sky-fullscreen-exit:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
+}
+
+.sky-fullscreen-exit {
+  position: absolute;
+  z-index: 3;
+  top: max(14px, env(safe-area-inset-top));
+  left: max(14px, env(safe-area-inset-left));
+}
+
+.sky-view-panel--fullscreen,
+.sky-view-panel:fullscreen {
+  box-sizing: border-box;
+  width: 100vw;
+  height: 100vh;
+  height: 100dvh;
+  max-width: none;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: #050914;
+}
+
+.sky-view-panel--viewport {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+}
+
+.sky-view-panel--fullscreen .sky-view-heading {
+  position: absolute;
+  z-index: 3;
+  top: max(14px, env(safe-area-inset-top));
+  right: max(14px, env(safe-area-inset-right));
+  padding: 0;
+}
+
+.sky-view-panel--fullscreen .sky-view-stats {
+  display: flex;
+  gap: 5px;
+  color: rgb(255 255 255 / 68%);
+}
+
+.sky-view-panel--fullscreen .sky-view-stats span {
+  border-color: rgb(145 201 255 / 15%);
+  padding: 6px 8px;
+  background: rgb(5 9 20 / 58%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.sky-view-panel--fullscreen .sky-canvas-shell {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0;
+}
+
+.sky-view-panel--fullscreen .sky-canvas {
+  min-height: 0;
+}
+
 .sky-canvas-shell {
+  position: relative;
   display: grid;
+  width: 100%;
+  min-width: 0;
   min-height: 360px;
   overflow: hidden;
   place-items: center;
   border: 1px solid rgb(145 201 255 / 13%);
   border-radius: 20px;
-  background: #050914;
+  background: linear-gradient(#030712, #071226 72%, #112341);
+  transition: background 280ms ease;
+}
+
+.sky-canvas-shell--astronomical {
+  background: linear-gradient(#071026, #142448 70%, #45345d);
+}
+
+.sky-canvas-shell--nautical {
+  background: linear-gradient(#11234a, #354f78 68%, #9a5f70);
+}
+
+.sky-canvas-shell--civil {
+  background: linear-gradient(#315f92, #7f7594 68%, #d88b71);
+}
+
+.sky-canvas-shell--daylight {
+  background: linear-gradient(#4b99d1, #8cc5e8 72%, #d9e8ed);
+}
+
+.sky-renderer-notice {
+  position: absolute;
+  z-index: 1;
+  top: 12px;
+  left: 50%;
+  margin: 0;
+  border: 1px solid rgb(145 201 255 / 18%);
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: rgb(5 9 20 / 82%);
+  color: rgb(255 255 255 / 62%);
+  font-size: 0.68rem;
+  pointer-events: none;
+  transform: translateX(-50%);
+  white-space: nowrap;
 }
 
 .sky-canvas {
@@ -2013,6 +2245,7 @@ textarea {
 
 .sky-toolbar {
   display: grid;
+  min-width: 0;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin-top: 12px;
@@ -2023,6 +2256,153 @@ textarea {
   min-height: 38px;
   padding: 0 8px;
   font-size: 0.7rem;
+}
+
+.sky-toolbar-icon {
+  display: none;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar {
+  position: absolute;
+  z-index: 3;
+  bottom: max(14px, env(safe-area-inset-bottom));
+  left: 50%;
+  display: flex;
+  width: max-content;
+  max-width: calc(100% - 24px);
+  gap: 4px;
+  margin: 0;
+  border: 1px solid rgb(145 201 255 / 14%);
+  border-radius: 999px;
+  padding: 6px;
+  overflow-x: auto;
+  background: rgb(5 9 20 / 58%);
+  box-shadow: 0 10px 35px rgb(0 0 0 / 28%);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  transform: translateX(-50%);
+  scrollbar-width: none;
+}
+
+.sky-view-panel--fullscreen .sky-playback-speed {
+  flex: none;
+  border-radius: 999px;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar button {
+  width: 36px;
+  min-width: 36px;
+  min-height: 36px;
+  border-radius: 50%;
+  padding: 0;
+  background: rgb(145 201 255 / 8%);
+}
+
+.sky-view-panel--fullscreen .sky-toolbar button.sky-motion-button--active {
+  border-color: rgb(145 201 255 / 48%);
+  background: rgb(145 201 255 / 22%);
+  color: #fff;
+  box-shadow: 0 0 18px rgb(145 201 255 / 18%);
+}
+
+.sky-view-panel--fullscreen .sky-toolbar-icon {
+  display: inline;
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.sky-view-panel--fullscreen .sky-toolbar-label {
+  display: none;
+}
+
+.sky-motion-status {
+  position: absolute;
+  z-index: 3;
+  right: max(14px, env(safe-area-inset-right));
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 58px);
+  max-width: min(360px, calc(100% - 28px));
+  margin: 0;
+  border: 1px solid rgb(145 201 255 / 18%);
+  border-radius: 12px;
+  padding: 9px 12px;
+  background: rgb(5 9 20 / 76%);
+  color: rgb(255 255 255 / 76%);
+  font-size: 0.72rem;
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
+.sky-selection-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 4px 0;
+  border: 1px solid rgb(200 243 106 / 24%);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgb(200 243 106 / 7%);
+}
+
+.sky-selection-card .eyebrow {
+  margin: 0 0 5px;
+}
+
+.sky-selection-card h3,
+.sky-selection-card p {
+  margin: 0;
+}
+
+.sky-selection-card h3 {
+  color: white;
+  font-size: 1rem;
+}
+
+.sky-selection-card p:last-child {
+  margin-top: 5px;
+  color: rgb(255 255 255 / 58%);
+  font-size: 0.72rem;
+}
+
+.sky-selection-card button {
+  flex: none;
+  min-height: 38px;
+  border: 1px solid rgb(200 243 106 / 25%);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--lime-300);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.sky-selection-actions {
+  display: flex;
+  flex: none;
+  gap: 7px;
+}
+
+.sky-selection-card button:focus-visible {
+  outline: 3px solid rgb(200 243 106 / 28%);
+  outline-offset: 2px;
+}
+
+.sky-view-panel--fullscreen .sky-selection-card {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 58px);
+  left: 50%;
+  width: min(440px, calc(100% - 28px));
+  margin: 0;
+  transform: translateX(-50%);
+  background: rgb(5 9 20 / 78%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
 }
 
 .sky-time-readout {
@@ -2062,14 +2442,35 @@ textarea {
 }
 
 .visible-object-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
   border-radius: 10px;
-  padding: 9px 10px;
   background: rgb(255 255 255 / 4%);
   color: rgb(255 255 255 / 72%);
   font-size: 0.72rem;
+}
+
+.visible-object-list li.is-selected {
+  background: rgb(200 243 106 / 10%);
+  box-shadow: inset 0 0 0 1px rgb(200 243 106 / 24%);
+}
+
+.visible-object-list li button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: inherit;
+  padding: 9px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.visible-object-list li button:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
 }
 
 .visible-object-list li span:last-child {
@@ -2207,7 +2608,7 @@ textarea {
   }
 
   .sky-toolbar {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(9, minmax(0, 1fr));
   }
 
   .hero-grid {
@@ -2249,6 +2650,7 @@ textarea {
 
 @media (min-width: 1040px) {
   .sky-simulator {
+    grid-template-areas: "controls view";
     grid-template-columns: minmax(300px, 0.38fr) minmax(0, 0.62fr);
     align-items: start;
   }
@@ -2275,5 +2677,9 @@ textarea {
 
   .feature-entry-card:hover {
     transform: none;
+  }
+
+  .sky-canvas-shell {
+    transition: none;
   }
 }
