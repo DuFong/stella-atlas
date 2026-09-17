@@ -2215,6 +2215,69 @@ textarea {
   backdrop-filter: blur(12px);
 }
 
+.sky-selection-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 18px 4px 0;
+  border: 1px solid rgb(200 243 106 / 24%);
+  border-radius: 14px;
+  padding: 14px 16px;
+  background: rgb(200 243 106 / 7%);
+}
+
+.sky-selection-card .eyebrow {
+  margin: 0 0 5px;
+}
+
+.sky-selection-card h3,
+.sky-selection-card p {
+  margin: 0;
+}
+
+.sky-selection-card h3 {
+  color: white;
+  font-size: 1rem;
+}
+
+.sky-selection-card p:last-child {
+  margin-top: 5px;
+  color: rgb(255 255 255 / 58%);
+  font-size: 0.72rem;
+}
+
+.sky-selection-card button {
+  flex: none;
+  min-height: 38px;
+  border: 1px solid rgb(200 243 106 / 25%);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: transparent;
+  color: var(--lime-300);
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 740;
+}
+
+.sky-selection-card button:focus-visible {
+  outline: 3px solid rgb(200 243 106 / 28%);
+  outline-offset: 2px;
+}
+
+.sky-view-panel--fullscreen .sky-selection-card {
+  position: absolute;
+  z-index: 3;
+  bottom: calc(max(14px, env(safe-area-inset-bottom)) + 58px);
+  left: 50%;
+  width: min(440px, calc(100% - 28px));
+  margin: 0;
+  transform: translateX(-50%);
+  background: rgb(5 9 20 / 78%);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+}
+
 .sky-time-readout {
   display: flex;
   flex-direction: column;
@@ -2252,14 +2315,35 @@ textarea {
 }
 
 .visible-object-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
   border-radius: 10px;
-  padding: 9px 10px;
   background: rgb(255 255 255 / 4%);
   color: rgb(255 255 255 / 72%);
   font-size: 0.72rem;
+}
+
+.visible-object-list li.is-selected {
+  background: rgb(200 243 106 / 10%);
+  box-shadow: inset 0 0 0 1px rgb(200 243 106 / 24%);
+}
+
+.visible-object-list li button {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  gap: 12px;
+  border: 0;
+  border-radius: inherit;
+  padding: 9px 10px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+}
+
+.visible-object-list li button:focus-visible {
+  outline: 3px solid rgb(145 201 255 / 34%);
+  outline-offset: 2px;
 }
 
 .visible-object-list li span:last-child {

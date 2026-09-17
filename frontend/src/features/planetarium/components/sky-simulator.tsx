@@ -68,6 +68,7 @@ export function SkySimulator({
     pointerY: number;
     bearing: number;
     viewAltitude: number;
+    moved: boolean;
   } | null>(null);
   const [latitude, setLatitude] = useState(DEFAULT_LATITUDE);
   const [longitude, setLongitude] = useState(DEFAULT_LONGITUDE);
@@ -88,6 +89,7 @@ export function SkySimulator({
   const [bearing, setBearing] = useState(0);
   const [viewAltitude, setViewAltitude] = useState(DEFAULT_VIEW_ALTITUDE);
   const [zoom, setZoom] = useState(1);
+  const [selectedObjectId, setSelectedObjectId] = useState<string>();
   const [renderBackend, setRenderBackend] = useState<RenderBackend>("webgl");
   const [fullscreenMode, setFullscreenMode] = useState<FullscreenMode>(null);
   const [motionStatus, setMotionStatus] = useState<MotionStatus>("idle");
@@ -224,6 +226,7 @@ export function SkySimulator({
         altitudeDegrees: viewAltitude,
         bearingDegrees: bearing,
         fieldOfViewDegrees: 90 / zoom,
+        selectedObjectId,
       });
       rendererRef.current.render();
     } catch {
@@ -233,7 +236,7 @@ export function SkySimulator({
       );
       return () => window.clearTimeout(fallbackTimer);
     }
-  }, [bearing, renderBackend, viewAltitude, zoom]);
+  }, [bearing, renderBackend, selectedObjectId, viewAltitude, zoom]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -568,6 +571,7 @@ export function SkySimulator({
       pointerY: event.clientY,
       bearing,
       viewAltitude,
+      moved: false,
     };
   }
 
@@ -575,8 +579,14 @@ export function SkySimulator({
     if (!dragRef.current) {
       return;
     }
-    const bearingDelta = (dragRef.current.pointerX - event.clientX) * 0.24;
-    const altitudeDelta = (event.clientY - dragRef.current.pointerY) * 0.18;
+    const horizontalDistance = event.clientX - dragRef.current.pointerX;
+    const verticalDistance = event.clientY - dragRef.current.pointerY;
+    if (!dragRef.current.moved && Math.hypot(horizontalDistance, verticalDistance) < 6) {
+      return;
+    }
+    dragRef.current.moved = true;
+    const bearingDelta = -horizontalDistance * 0.24;
+    const altitudeDelta = verticalDistance * 0.18;
     setBearing(normalizeDegrees(dragRef.current.bearing + bearingDelta));
     setViewAltitude(
       clamp(dragRef.current.viewAltitude + altitudeDelta, 0, 85),
@@ -584,10 +594,37 @@ export function SkySimulator({
   }
 
   function stopDragging(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const drag = dragRef.current;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
     dragRef.current = null;
+    if (drag && !drag.moved) {
+      selectCanvasObject(event);
+    }
+  }
+
+  function cancelDragging(event: ReactPointerEvent<HTMLCanvasElement>) {
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+    dragRef.current = null;
+  }
+
+  function selectCanvasObject(event: ReactPointerEvent<HTMLCanvasElement>) {
+    const renderer = rendererRef.current;
+    if (!renderer || renderBackend !== "webgl") {
+      return;
+    }
+    const bounds = event.currentTarget.getBoundingClientRect();
+    if (bounds.width <= 0 || bounds.height <= 0) {
+      return;
+    }
+    const selectedId = renderer.hitTest(
+      event.clientX - bounds.left,
+      event.clientY - bounds.top,
+    );
+    setSelectedObjectId(selectedId ?? undefined);
   }
 
   function zoomSky(event: ReactWheelEvent<HTMLCanvasElement>) {
@@ -618,6 +655,7 @@ export function SkySimulator({
   const visibleObjects = scene.objects
     .filter((object) => object.altitudeDegrees >= 0)
     .sort((left, right) => right.altitudeDegrees - left.altitudeDegrees);
+  const selectedObject = scene.objects.find(({ id }) => id === selectedObjectId);
 
   return (
     <div className="sky-simulator">
@@ -858,7 +896,7 @@ export function SkySimulator({
               onPointerDown={startDragging}
               onPointerMove={dragSky}
               onPointerUp={stopDragging}
-              onPointerCancel={stopDragging}
+              onPointerCancel={cancelDragging}
               onWheel={zoomSky}
             />
           ) : null}
@@ -936,6 +974,21 @@ export function SkySimulator({
           </p>
         ) : null}
 
+        {selectedObject ? (
+          <section className="sky-selection-card" aria-live="polite">
+            <div>
+              <p className="eyebrow">SELECTED OBJECT</p>
+              <h3>{selectedObject.name}</h3>
+              <p>
+                {skyObjectKindLabel(selectedObject)} · 고도 {selectedObject.altitudeDegrees.toFixed(1)}° · 방위 {selectedObject.azimuthDegrees.toFixed(1)}°
+              </p>
+            </div>
+            <button type="button" onClick={() => setSelectedObjectId(undefined)}>
+              선택 해제
+            </button>
+          </section>
+        ) : null}
+
         {!fullscreenMode ? (
           <>
             <p className="sky-time-readout">
@@ -952,9 +1005,18 @@ export function SkySimulator({
               <summary>현재 지평선 위 주요 천체 {visibleObjects.length}개</summary>
               <ul>
                 {visibleObjects.map((object) => (
-                  <li key={object.id}>
-                    <span>{object.name}</span>
-                    <span>고도 {object.altitudeDegrees.toFixed(1)}° · 방위 {object.azimuthDegrees.toFixed(1)}°</span>
+                  <li
+                    key={object.id}
+                    className={object.id === selectedObjectId ? "is-selected" : undefined}
+                  >
+                    <button
+                      type="button"
+                      aria-pressed={object.id === selectedObjectId}
+                      onClick={() => setSelectedObjectId(object.id)}
+                    >
+                      <span>{object.name}</span>
+                      <span>고도 {object.altitudeDegrees.toFixed(1)}° · 방위 {object.azimuthDegrees.toFixed(1)}°</span>
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -975,6 +1037,19 @@ function validCoordinates(latitude: number, longitude: number): boolean {
     longitude >= -180 &&
     longitude <= 180
   );
+}
+
+function skyObjectKindLabel(object: SkyObject): string {
+  switch (object.kind) {
+    case "STAR":
+      return "별";
+    case "SUN":
+      return "태양";
+    case "MOON":
+      return "달";
+    case "PLANET":
+      return "행성";
+  }
 }
 
 function createDefaultRenderer(): PlanetariumRenderer {

@@ -39,6 +39,7 @@
 - Project-owned Three.js WebGL planetarium foundation with observer-centered navigation and Canvas fallback.
 - Edge-to-edge fullscreen sky viewing with translucent overlay controls and an iPhone Safari viewport fallback.
 - Permission-gated mobile orientation controls with relative sky tracking, smoothing, recalibration, and secure-context guidance.
+- Pointer and accessible-list sky-object selection with GPU highlighting and an altitude/azimuth detail panel.
 
 ### Changed
 

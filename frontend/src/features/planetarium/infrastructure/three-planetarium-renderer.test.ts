@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { horizontalToCartesian } from "./three-planetarium-renderer";
+import {
+  horizontalToCartesian,
+  selectionValuesFor,
+} from "./three-planetarium-renderer";
 
 describe("horizontalToCartesian", () => {
   it.each([
@@ -17,4 +20,15 @@ describe("horizontalToCartesian", () => {
       expect(result.length()).toBeCloseTo(1, 10);
     },
   );
+});
+
+describe("selectionValuesFor", () => {
+  it("marks only the selected object for GPU highlighting", () => {
+    expect(
+      selectionValuesFor(
+        [{ id: "sirius" }, { id: "moon" }, { id: "mars" }],
+        "moon",
+      ),
+    ).toEqual([0, 1, 0]);
+  });
 });

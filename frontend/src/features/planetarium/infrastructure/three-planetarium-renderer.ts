@@ -30,20 +30,24 @@ const MAX_PIXEL_RATIO = 2;
 
 const STAR_VERTEX_SHADER = `
   attribute float objectSize;
+  attribute float objectSelected;
   attribute vec3 objectColor;
   uniform float pixelRatio;
   varying vec3 vColor;
+  varying float vSelected;
 
   void main() {
     vColor = objectColor;
+    vSelected = objectSelected;
     vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
     gl_Position = projectionMatrix * viewPosition;
-    gl_PointSize = objectSize * pixelRatio;
+    gl_PointSize = objectSize * mix(1.0, 1.7, objectSelected) * pixelRatio;
   }
 `;
 
 const STAR_FRAGMENT_SHADER = `
   varying vec3 vColor;
+  varying float vSelected;
 
   void main() {
     float distanceFromCenter = distance(gl_PointCoord, vec2(0.5));
@@ -52,7 +56,9 @@ const STAR_FRAGMENT_SHADER = `
     }
     float core = 1.0 - smoothstep(0.0, 0.5, distanceFromCenter);
     float alpha = smoothstep(0.5, 0.08, distanceFromCenter);
-    vec3 color = mix(vColor * 0.72, vColor * 1.35, core);
+    vec3 baseColor = mix(vColor * 0.72, vColor * 1.35, core);
+    vec3 highlightColor = mix(baseColor, vec3(0.78, 0.95, 0.35), 0.72);
+    vec3 color = mix(baseColor, highlightColor, vSelected);
     gl_FragColor = vec4(color, alpha);
   }
 `;
@@ -67,6 +73,7 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
   private horizonLine: LineLoop<BufferGeometry, LineBasicMaterial> | null = null;
   private cardinalSprites: Sprite[] = [];
   private objectIds: string[] = [];
+  private selectedObjectId: string | undefined;
   private viewportWidth = 1;
   private viewportHeight = 1;
   private pixelRatio = 1;
@@ -155,6 +162,10 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
 
   updateView(view: PlanetariumViewState): void {
     this.requiredRenderer();
+    if (this.selectedObjectId !== view.selectedObjectId) {
+      this.selectedObjectId = view.selectedObjectId;
+      this.updateSelectionAttribute();
+    }
     this.camera.fov = clamp(view.fieldOfViewDegrees, 24, 90);
     this.camera.updateProjectionMatrix();
     this.camera.up.set(0, 1, 0);
@@ -234,6 +245,13 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
     geometry.setAttribute("position", new Float32BufferAttribute(positions, 3));
     geometry.setAttribute("objectColor", new Float32BufferAttribute(colors, 3));
     geometry.setAttribute("objectSize", new Float32BufferAttribute(sizes, 1));
+    geometry.setAttribute(
+      "objectSelected",
+      new Float32BufferAttribute(
+        selectionValuesFor(objects, this.selectedObjectId),
+        1,
+      ),
+    );
     const material = new ShaderMaterial({
       depthTest: false,
       fragmentShader: STAR_FRAGMENT_SHADER,
@@ -301,6 +319,24 @@ export class ThreePlanetariumRenderer implements PlanetariumRenderer {
     }
     this.pointCloud.material.uniforms.pixelRatio.value = this.renderer.getPixelRatio();
   }
+
+  private updateSelectionAttribute(): void {
+    if (!this.pointCloud) {
+      return;
+    }
+    const selection = this.pointCloud.geometry.getAttribute("objectSelected");
+    for (let index = 0; index < this.objectIds.length; index += 1) {
+      selection.setX(index, this.objectIds[index] === this.selectedObjectId ? 1 : 0);
+    }
+    selection.needsUpdate = true;
+  }
+}
+
+export function selectionValuesFor(
+  objects: readonly Pick<SkyObject, "id">[],
+  selectedObjectId?: string,
+): number[] {
+  return objects.map(({ id }) => id === selectedObjectId ? 1 : 0);
 }
 
 function createDirectionSprite(label: string): Sprite {

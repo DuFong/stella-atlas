@@ -80,6 +80,67 @@ describe("SkySimulator", () => {
     );
   });
 
+  it("selects a visible object from the accessible object list", () => {
+    render(<SkySimulator initialObservedAt="2026-08-05T13:00:00Z" />);
+
+    const objectButton = screen.getByRole("button", { name: /베가/ });
+    fireEvent.click(objectButton);
+
+    expect(objectButton).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("heading", { level: 3, name: "베가" })).toBeInTheDocument();
+    expect(screen.getByText(/별 · 고도 .* · 방위/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "선택 해제" }));
+    expect(screen.queryByRole("heading", { level: 3, name: "베가" })).not.toBeInTheDocument();
+  });
+
+  it("selects a WebGL object through renderer hit testing", async () => {
+    const renderer: PlanetariumRenderer = {
+      initialize: vi.fn(),
+      resize: vi.fn(),
+      updateScene: vi.fn(),
+      updateView: vi.fn(),
+      render: vi.fn(),
+      hitTest: vi.fn(() => "vega"),
+      dispose: vi.fn(),
+    };
+    render(
+      <SkySimulator
+        initialObservedAt="2026-08-05T13:00:00Z"
+        createRenderer={() => renderer}
+      />,
+    );
+    const canvas = screen.getByLabelText(
+      "선택한 위치와 시각의 관측자 중심 천체 시뮬레이션",
+    );
+    vi.spyOn(canvas, "getBoundingClientRect").mockReturnValue({
+      bottom: 400,
+      height: 400,
+      left: 0,
+      right: 600,
+      top: 0,
+      width: 600,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    });
+    Object.defineProperties(canvas, {
+      hasPointerCapture: { configurable: true, value: () => false },
+      setPointerCapture: { configurable: true, value: vi.fn() },
+    });
+
+    fireEvent.pointerDown(canvas, { clientX: 240, clientY: 160, pointerId: 1 });
+    fireEvent.pointerUp(canvas, { clientX: 240, clientY: 160, pointerId: 1 });
+
+    expect(renderer.hitTest).toHaveBeenCalledWith(240, 160);
+    expect(screen.getByRole("heading", { level: 3, name: "베가" })).toBeInTheDocument();
+    await waitFor(() => {
+      expect(renderer.updateView).toHaveBeenLastCalledWith(
+        expect.objectContaining({ selectedObjectId: "vega" }),
+      );
+    });
+  });
+
   it("reveals the sky after applying controls on a narrow screen", () => {
     const scrollIntoView = vi.fn();
     Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
